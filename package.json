@@ -4,6 +4,7 @@
     "imports": {
         "#api/*.ts": "./src/api/*.ts"
     },
+    "workspaces": ["decompiler"],
     "scripts": {
         "test": "node ./test/index.ts",
         "lint": "eslint",
@@ -21,8 +22,5 @@
         "eslint-plugin-unused-imports": "^4.2.0",
         "fflate": "^0.8.2",
         "typescript-eslint": "^8.46.0"
-    },
-    "dependencies": {
-        "decompiler": "workspace:^"
     }
 }
