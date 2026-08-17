@@ -6,6 +6,7 @@ const functionHeaderFlagFields = {
     hasExceptionHandler: 1,
     hasDebugInfo: 1,
     overflowed: 1,
+    kind: 2,
 };
 
 export const smallFunctionHeader = new Bitfield({
@@ -13,9 +14,10 @@ export const smallFunctionHeader = new Bitfield({
     paramCount: 7,
     bytecodeSizeInBytes: 15,
     functionName: 17,
-    infoOffset: 25,
-    frameSize: 7,
-    environmentSize: 8,
+    // infoOffset: 25,
+    // frameSize: 7,
+    frameSize: 8,
+    // environmentSize: 8,
     highestReadCacheIndex: 8,
     highestWriteCacheIndex: 8,
 
@@ -27,9 +29,9 @@ export const largeFunctionHeader = new Bitfield({
     paramCount: 32,
     bytecodeSizeInBytes: 32,
     functionName: 32,
-    infoOffset: 32,
+    // infoOffset: 32,
     frameSize: 32,
-    environmentSize: 32,
+    // environmentSize: 32,
     highestReadCacheIndex: 8,
     highestWriteCacheIndex: 8,
 
