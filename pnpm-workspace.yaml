@@ -1,9 +1,2 @@
 packages:
   - decompiler/
-
-allowBuilds:
-  esbuild: true
-
-onlyBuiltDependencies:
-  - dprint
-  - esbuild
