@@ -82,30 +82,30 @@ function disassembleInstruction(module: HermesModule, func: ModuleFunction, inst
         return value.toString();
     });
 
-    switch (instr.opcode) {
-        case Opcode.CreateEnvironment:
-            notes.push(`envSize=${func.header.environmentSize}`);
-            break;
-        case Opcode.NewArrayWithBuffer:
-        case Opcode.NewArrayWithBufferLong: {
-            const [,, count, valIdx] = instr.operands();
+    // switch (instr.opcode) {
+    //     case Opcode.CreateEnvironment:
+    //         notes.push(`envSize=${func.header.environmentSize}`);
+    //         break;
+    //     case Opcode.NewArrayWithBuffer:
+    //     case Opcode.NewArrayWithBufferLong: {
+    //         const [,, count, valIdx] = instr.operands();
 
-            const items = parseLiterals(module.arrayBuffer, valIdx, count, module.strings);
+    //         const items = parseLiterals(module.arrayBuffer, valIdx, count, module.strings);
 
-            notes.push(`[${items.map(v => JSON.stringify(v)).join(", ")}]`);
-            break;
-        }
-        case Opcode.NewObjectWithBuffer:
-        case Opcode.NewObjectWithBufferLong: {
-            const [,, count, keyIdx, valIdx] = instr.operands();
+    //         notes.push(`[${items.map(v => JSON.stringify(v)).join(", ")}]`);
+    //         break;
+    //     }
+    //     case Opcode.NewObjectWithBuffer:
+    //     case Opcode.NewObjectWithBufferLong: {
+    //         const [,, count, keyIdx, valIdx] = instr.operands();
 
-            const keys = parseLiterals(module.objectKeyBuffer, keyIdx, count, module.strings);
-            const values = parseLiterals(module.objectValueBuffer, valIdx, count, module.strings);
+    //         const keys = parseLiterals(module.objectKeyBuffer, keyIdx, count, module.strings);
+    //         const values = parseLiterals(module.objectValueBuffer, valIdx, count, module.strings);
 
-            notes.push(`{ ${keys.map((k, i) => `${formatKey(k)}: ${JSON.stringify(values[i])}`).join(", ")} }`);
-            break;
-        }
-    }
+    //         notes.push(`{ ${keys.map((k, i) => `${formatKey(k)}: ${JSON.stringify(values[i])}`).join(", ")} }`);
+    //         break;
+    //     }
+    // }
 
     return { name, args, notes };
 }

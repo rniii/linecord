@@ -3,7 +3,7 @@ import { writeFile } from "fs/promises";
 import { entries } from "../utils/index.ts";
 
 // TODO: the bytecode version matches, but I don't know which RN version discord uses
-const HERMES_URL = "https://github.com/facebook/hermes/raw/refs/tags/v0.13.0";
+const HERMES_URL = "https://github.com/facebook/hermes/raw/c00cc57595";
 const BYTECODE_URL = `${HERMES_URL}/include/hermes/BCGen/HBC/BytecodeList.def`;
 const BUILTINS_URL = `${HERMES_URL}/include/hermes/FrontEndDefs/Builtins.def`;
 

@@ -27,9 +27,9 @@ export function writeHermesModule(module: HermesModule) {
         bigIntStorageSize: module.bigInts.storage.byteLength,
         regExpCount: module.regExps.length,
         regExpStorageSize: module.regExps.storage.byteLength,
-        arrayBufferSize: module.arrayBuffer.byteLength,
+        literalValueBufferSize: module.literalValueBuffer.byteLength,
         objKeyBufferSize: module.objectKeyBuffer.byteLength,
-        objValueBufferSize: module.objectValueBuffer.byteLength,
+        objShapeTableCount: module.objects.length,
         segmentID: module.segmentID,
         cjsModuleCount: module.cjsModuleTable.byteLength / offsetLengthPair.byteSize,
         functionSourceCount: module.functionSourceTable.byteLength / offsetLengthPair.byteSize,
@@ -112,14 +112,13 @@ export function writeHermesModule(module: HermesModule) {
     offsetLengthPair.writeItems(view, segments.overflowStringTable[0], module.strings.overflowEntries);
     offsetLengthPair.writeItems(view, segments.bigIntTable[0], module.bigInts.entries);
     offsetLengthPair.writeItems(view, segments.regExpTable[0], module.regExps.entries);
+    offsetLengthPair.writeItems(view, segments.objectShapeTable[0], module.objects.entries);
 
     for (
         const [segment, [offset]] of [
             [module.identifierHashes, segments.identifierHashes],
             [module.strings.storage, segments.stringStorage],
-            [module.arrayBuffer, segments.arrayBuffer], // TODO
             [module.objectKeyBuffer, segments.objectKeyBuffer], // TODO
-            [module.objectValueBuffer, segments.objectValueBuffer], // TODO
             [module.bigInts.storage, segments.bigIntStorage],
             [module.regExps.storage, segments.regExpStorage],
             [module.cjsModuleTable, segments.cjsModuleTable],

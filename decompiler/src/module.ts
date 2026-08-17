@@ -13,8 +13,8 @@ import {
 } from "./bitfields.ts";
 import type { ModuleBytecode, ModuleFunction } from "./function.ts";
 
-// https://github.com/facebook/hermes/blob/v0.13.0/include/hermes/BCGen/HBC/BytecodeVersion.h#L23
-export const HERMES_VERSION = 96;
+// https://github.com/facebook/hermes/blob/c00cc57595/include/hermes/BCGen/HBC/BytecodeVersion.h#L23
+export const HERMES_VERSION = 98;
 
 // https://github.com/facebook/hermes/blob/v0.13.0/include/hermes/BCGen/HBC/BytecodeFileFormat.h#L27
 export const HERMES_SIGNATURE = 0x1F1903C103BC1FC6n;
@@ -96,6 +96,12 @@ export class RegExpTable extends DataTable<never> {
     }
 }
 
+export class ObjectTable extends DataTable<never> {
+    get(): never {
+        throw "fish";
+    }
+}
+
 export class HermesModule {
     sourceHash: Uint8Array;
     globalCodeIndex: number;
@@ -108,13 +114,13 @@ export class HermesModule {
     functionSourceTable: Uint8Array;
     debugInfo?: Uint8Array;
 
-    arrayBuffer: Uint8Array;
+    literalValueBuffer: Uint8Array;
     objectKeyBuffer: Uint8Array;
-    objectValueBuffer: Uint8Array;
 
     strings: StringTable;
     bigInts: BigIntTable;
     regExps: RegExpTable;
+    objects: ObjectTable;
 
     bytecode: ModuleBytecode[];
     functions: ModuleFunction[];
@@ -133,9 +139,8 @@ export class HermesModule {
         this.cjsModuleTable = segments.cjsModuleTable;
         this.functionSourceTable = segments.functionSourceTable;
 
-        this.arrayBuffer = segments.arrayBuffer;
+        this.literalValueBuffer = segments.literalValueBuffer;
         this.objectKeyBuffer = segments.objectKeyBuffer;
-        this.objectValueBuffer = segments.objectValueBuffer;
 
         if (header.debugInfoOffset) {
             // debug info is followed by a 20 byte SHA-1 hash, which we don't check
@@ -159,6 +164,10 @@ export class HermesModule {
         this.regExps = new RegExpTable(
             segments.regExpStorage,
             offsetLengthPair.parseArray(segments.regExpTable),
+        );
+        this.objects = new ObjectTable(
+            segments.objectShapeTable,
+            offsetLengthPair.parseArray(segments.objectShapeTable),
         );
 
         [this.bytecode, this.functions] = parseFunctions(segments, buffer);
@@ -288,9 +297,9 @@ export function segmentModule(header: Header) {
         stringTable: header.stringCount * stringTableEntry.byteSize,
         overflowStringTable: header.overflowStringCount * offsetLengthPair.byteSize,
         stringStorage: header.stringStorageSize,
-        arrayBuffer: header.arrayBufferSize,
+        literalValueBuffer: header.literalValueBufferSize,
         objectKeyBuffer: header.objKeyBufferSize,
-        objectValueBuffer: header.objValueBufferSize,
+        objectShapeTable: header.objShapeTableCount * offsetLengthPair.byteSize,
         bigIntTable: header.bigIntCount * offsetLengthPair.byteSize,
         bigIntStorage: header.bigIntStorageSize,
         regExpTable: header.regExpCount * offsetLengthPair.byteSize,
@@ -336,9 +345,9 @@ export function parseHeader(buffer: ArrayBuffer) {
             "bigIntStorageSize",
             "regExpCount",
             "regExpStorageSize",
-            "arrayBufferSize",
+            "literalValueBufferSize",
             "objKeyBufferSize",
-            "objValueBufferSize",
+            "objShapeTableCount",
             "segmentID",
             "cjsModuleCount",
             "functionSourceCount",
