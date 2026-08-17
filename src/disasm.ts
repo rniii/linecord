@@ -1,6 +1,5 @@
 import { type HermesModule, Instruction, parseLiterals } from "decompiler";
-import type { MutableFunction } from "decompiler/mutable";
-import { ArgType, Builtin, Opcode, opcodeTypes } from "decompiler/opcodes";
+import { ArgType, Builtin, builtinNames, Opcode, opcodeNames, opcodeTypes } from "decompiler/opcodes";
 import type { Literal, ModuleFunction } from "decompiler/types";
 
 import { Color as C, drawGutter } from "./formatting.ts";
@@ -52,7 +51,7 @@ export function disassemble(module: HermesModule, func: ModuleFunction) {
 function disassembleInstruction(module: HermesModule, func: ModuleFunction, instr: Instruction) {
     const types = opcodeTypes[instr.opcode];
 
-    const name = Opcode[instr.opcode];
+    const name = opcodeNames[instr.opcode];
     const notes: string[] = [];
 
     const args = Array.from(instr.operands(), (value, arg) => {
@@ -65,7 +64,7 @@ function disassembleInstruction(module: HermesModule, func: ModuleFunction, inst
             return formatAddr(instr.ip + value);
         }
         if (builtinOperand[instr.opcode] === arg) {
-            return Builtin[value];
+            return builtinNames[value as typeof Builtin[keyof typeof Builtin]];
         }
         if (instr.stringOperands()?.includes(arg)) {
             notes.push(`str=$${value}`);
@@ -133,9 +132,15 @@ function formatHex(value: number, bytes = 4) {
 class IllegalInstruction extends Error {
     override name = "IllegalInstruction";
 
-    constructor(public func: ModuleFunction, public instruction: Instruction, cause?: string | Error) {
-        const detail = `${Opcode[instruction.opcode]} ${JSON.stringify([...instruction.operands()])}`;
+    func: ModuleFunction;
+    instruction: Instruction;
+
+    constructor(func: ModuleFunction, instruction: Instruction, cause?: string | Error) {
+        const detail = `${opcodeNames[instruction.opcode]} ${JSON.stringify([...instruction.operands()])}`;
 
         super(`Illegal instruction: ${detail}`, { cause });
+
+        this.func = func;
+        this.instruction = instruction;
     }
 }

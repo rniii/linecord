@@ -19,16 +19,17 @@ export const Color = {
     Reset: ansiColor(),
 };
 
-const enum GutterTileType {
-    EMPTY = 0,
-    TOP = 1 << 0,
-    RIGHT = 1 << 1,
-    BOTTOM = 1 << 2,
-    LEFT = 1 << 3,
-    X = LEFT | RIGHT,
-    Y = TOP | BOTTOM,
-    CORNER_TOP = BOTTOM | RIGHT,
-    CORNER_BOTTOM = TOP | RIGHT,
+// TODO: no
+const GutterTileType = new class {
+    EMPTY = 0;
+    TOP = 1 << 0;
+    RIGHT = 1 << 1;
+    BOTTOM = 1 << 2;
+    LEFT = 1 << 3;
+    X = this.LEFT | this.RIGHT;
+    Y = this.TOP | this.BOTTOM;
+    CORNER_TOP = this.BOTTOM | this.RIGHT;
+    CORNER_BOTTOM = this.TOP | this.RIGHT;
 }
 
 const SPRITES = [
@@ -47,11 +48,11 @@ const CURVED: Record<string, string> = {
 
 export type GutterTile =
     | {
-        type: GutterTileType.EMPTY;
+        type: typeof GutterTileType.EMPTY;
         dest?: number;
     }
     | {
-        type: Exclude<GutterTileType, GutterTileType.EMPTY>;
+        type: Exclude<typeof GutterTileType[keyof typeof GutterTileType], typeof GutterTileType.EMPTY>;
         dest: number;
     };
 

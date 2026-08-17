@@ -1,11 +1,13 @@
 import { entries, padSize } from "../../utils/index.ts";
 
 export class Bitfield<K extends string> {
+    fields: Record<K, number>;
     bitSize: number;
     byteSize: number;
     segments: [K, { byte: number; mask: number; shift: number }][];
 
-    constructor(public fields: Record<K, number>) {
+    constructor(fields: Record<K, number>) {
+        this.fields = fields;
         this.bitSize = entries(fields).reduce((a, [, b]) => a + b, 0);
         this.byteSize = padSize(Math.ceil(this.bitSize / 8));
 

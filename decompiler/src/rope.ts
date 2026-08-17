@@ -66,11 +66,13 @@ export abstract class Rope<S extends Sequence> {
 }
 
 class Leaf<S extends Sequence> extends Rope<S> {
+    value: S;
     depth = 0;
     length: number;
 
-    constructor(public value: S) {
+    constructor(value: S) {
         super();
+        this.value = value;
         this.length = value.length;
     }
 
@@ -88,11 +90,15 @@ class Leaf<S extends Sequence> extends Rope<S> {
 }
 
 class Concat<S extends Sequence> extends Rope<S> {
+    left: Rope<S>;
+    right: Rope<S>;
     depth: number;
     length: number;
 
-    constructor(readonly left: Rope<S>, readonly right: Rope<S>) {
+    constructor(left: Rope<S>, right: Rope<S>) {
         super();
+        this.left = left;
+        this.right = right;
         this.depth = 1 + Math.max(left.depth, right.depth);
         this.length = left.length + right.length;
     }

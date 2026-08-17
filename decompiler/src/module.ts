@@ -29,9 +29,13 @@ export const HERMES_SIGNATURE = 0x1F1903C103BC1FC6n;
 export type Entry = { offset: number; length: number };
 
 export abstract class DataTable<T> {
+    storage: Uint8Array;
+    entries: Entry[];
     length: number;
 
-    constructor(public storage: Uint8Array, public entries: Entry[]) {
+    constructor(storage: Uint8Array, entries: Entry[]) {
+        this.storage = storage;
+        this.entries = entries;
         this.length = entries.length;
     }
 
@@ -50,14 +54,18 @@ const Utf16D = new TextDecoder("utf-16");
 
 export class StringTable extends DataTable<string> {
     declare entries: StringTableEntry[];
+    overflowEntries: Entry[];
+    kinds: StringKind[];
 
     constructor(
         storage: Uint8Array,
         entries: StringTableEntry[],
-        public overflowEntries: Entry[],
-        public kinds: StringKind[],
+        overflowEntries: Entry[],
+        kinds: StringKind[],
     ) {
         super(storage, entries);
+        this.overflowEntries = overflowEntries;
+        this.kinds = kinds;
     }
 
     get(index: number) {
@@ -314,7 +322,7 @@ export function parseHeader(buffer: ArrayBuffer) {
 
     return {
         version,
-        hash: new Uint8Array(view.buffer, 12, 20).slice(),
+        hash: new Uint8Array(view.buffer, 12, 20).slice() as Uint8Array,
         ...fromEntries(([
             "fileLength",
             "globalCodeIndex",

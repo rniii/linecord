@@ -2,12 +2,14 @@ import { bisect } from "../../utils/index.ts";
 import { type StringTableEntry, stringTableEntry } from "./bitfields.ts";
 import type { DebugOffsets, ExceptionHandler, ModuleBytecode, ModuleFunction, PartialFunctionHeader } from "./function.ts";
 import { Instruction } from "./instruction.ts";
-import type { HermesModule } from "./module.ts";
+import { HermesModule } from "./module.ts";
 import { Rope } from "./rope.ts";
 
 const Utf8E = new TextEncoder();
 
 export class ModulePatcher {
+    original: HermesModule;
+
     dirtyFunctions: Map<number, MutableFunction>;
 
     /** Sorted array of buckets of strings with the same length */
@@ -15,10 +17,11 @@ export class ModulePatcher {
     newStrStorage: Rope<Uint8Array>;
     newStrEntries: StringTableEntry[];
 
-    constructor(public original: HermesModule) {
+    constructor(original: HermesModule) {
+        this.original = original;
         this.dirtyFunctions = new Map();
         this.stringIndex = [];
-        this.newStrStorage = Rope.from(this.original.strings.storage);
+        this.newStrStorage = Rope.from(original.strings.storage);
         this.newStrEntries = [];
 
         for (let index = 0; index < original.strings.length; index++) {
@@ -126,6 +129,7 @@ export class ModulePatcher {
 }
 
 export class MutableFunction {
+    module: ModulePatcher;
     id: number;
     header: PartialFunctionHeader;
     bytecode: Rope<Uint8Array>;
@@ -133,7 +137,8 @@ export class MutableFunction {
     exceptionHandlers?: ExceptionHandler[];
     debugOffsets?: DebugOffsets;
 
-    constructor(public module: ModulePatcher, inner: ModuleFunction) {
+    constructor(module: ModulePatcher, inner: ModuleFunction) {
+        this.module = module;
         this.id = inner.id;
         this.header = { ...inner.header };
         this.bytecode = Rope.from(inner.bytecode.opcodes);

@@ -1,15 +1,6 @@
 export type ExceptionHandler = [number, number, number];
 export type DebugOffsets = [number, number, number];
 
-export enum ProhibitInvoke {
-    /** Must be called with `new` (constructor) */
-    ProhibitCall,
-    /** Cannot be called with `new` (ES6 arrow, class method) */
-    ProhibitConstruct,
-    /** No restriction (regular function) */
-    ProhibitNone,
-}
-
 export interface PartialFunctionHeader {
     paramCount: number;
     functionName: number;
@@ -21,8 +12,8 @@ export interface PartialFunctionHeader {
     highestReadCacheIndex: number;
     /** Highest slot used in `PutById`-family opcodes */
     highestWriteCacheIndex: number;
-    /** Prohibits calling with/without `new`, or not at all */
-    prohibitInvoke: ProhibitInvoke;
+    /** Prohibits calling without new (0), with new (1), or not at all (2) */
+    prohibitInvoke: number;
     /** Set to 1 if `"use strict";` applies to this function */
     strictMode: number;
 }

@@ -2,16 +2,18 @@ import type { StringTable } from "./module.ts";
 
 export type Literal = number | string | boolean | null;
 
-enum TagType {
-    Null = 0,
-    True = 1,
-    False = 2,
-    Number = 3,
-    LongString = 4,
-    ShortString = 5,
-    ByteString = 6,
-    Integer = 7,
-}
+const TagType = {
+    Null: 0,
+    True: 1,
+    False: 2,
+    Number: 3,
+    LongString: 4,
+    ShortString: 5,
+    ByteString: 6,
+    Integer: 7,
+} as const;
+
+type TagType = typeof TagType[keyof typeof TagType];
 
 // XXX: ideally all literals should be parsed ahead of time, but it doesn't seem to be trivial
 // (trying to read everything in `module.arrayBuffer` fails after 3 tags)
@@ -26,7 +28,7 @@ export function parseLiterals(buffer: Uint8Array, offset: number, count: number,
 
         // 0tagllll or 1tagllll llllllll
         // 76543210    76543210 76543210
-        const tag: TagType = (byte >> 4) & 0b111;
+        const tag = ((byte >> 4) & 0b111) as TagType;
         let len = byte & 0b1111;
 
         if (byte & 0x80) len = len << 8 | buffer[offset++];

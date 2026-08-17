@@ -18,9 +18,11 @@ export type PatchDef = PatchFingerprint & PatchAction;
 
 export class PatchContext {
     module: ModulePatcher;
+    target: MutableFunction;
 
-    constructor(public target: MutableFunction) {
+    constructor(target: MutableFunction) {
         this.module = target.module;
+        this.target = target;
     }
 
     getClosure(instr: MatchedInstruction<keyof FunctionOperands>) {

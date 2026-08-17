@@ -1,7 +1,7 @@
 import { Instruction } from "./instruction.ts";
 import type { HermesModule } from "./module.ts";
 import type { MutableFunction } from "./mutable.ts";
-import { ArgType, Opcode, opcodeTypes } from "./opcodes.ts";
+import { ArgType, Opcode, opcodeNames, opcodeTypes } from "./opcodes.ts";
 import { Rope } from "./rope.ts";
 
 interface BytecodeInfo {
@@ -17,20 +17,17 @@ const OPCODE = ansi("35");
 const RESET = ansi();
 const BOLD = ansi("1");
 
-enum Hunk {
-    Deleted = -1,
-    Unchanged,
-    Inserted,
-}
+type Hunk = -1 | 0 | 1;
 
 export class Disassembler {
-    doColor = true;
+    module: HermesModule;
 
+    doColor = true;
     bcCache = new WeakMap<any, BytecodeInfo>();
 
-    constructor(
-        public module: HermesModule,
-    ) {}
+    constructor(module: HermesModule) {
+        this.module = module;
+    }
 
     diffMutable(mutable: MutableFunction) {
         const original = this.module.functions[mutable.id];
@@ -46,26 +43,26 @@ export class Disassembler {
         let offset = oldBc.byteOffset;
         for (const leaf of newBc.leaves()) {
             if (leaf.buffer !== oldBc.buffer || leaf.byteOffset < offset) {
-                hunks.push([Hunk.Inserted, leaf]);
+                hunks.push([+1, leaf]);
             } else {
                 const deleted = new Uint8Array(oldBc.buffer, offset, leaf.byteOffset - offset);
 
-                hunks.push([Hunk.Deleted, deleted]);
-                hunks.push([Hunk.Unchanged, leaf]);
+                hunks.push([-1, deleted]);
+                hunks.push([+0, leaf]);
 
                 offset = leaf.byteOffset + leaf.byteLength;
             }
         }
 
         if (offset < oldBc.byteOffset + oldBc.byteLength) {
-            hunks.push([Hunk.Deleted, oldBc.subarray(oldBc.byteOffset - offset)]);
+            hunks.push([-1, oldBc.subarray(oldBc.byteOffset - offset)]);
         }
 
         let src = "";
         for (const [diff, leaf] of hunks) {
             if (leaf.byteLength === 0) continue;
 
-            if (diff === Hunk.Unchanged) {
+            if (diff === 0) {
                 for (const { text } of this.disassembleBytes(leaf)) {
                     src += `  ${text}\n`;
                 }
@@ -83,7 +80,7 @@ export class Disassembler {
 
     *disassembleBytes(bc: Uint8Array, color = OPCODE) {
         for (const instr of Instruction.iterate(bc)) {
-            const name = Opcode[instr.opcode];
+            const name = opcodeNames[instr.opcode];
             const args = Array.from(instr.operands(), (arg, i) => {
                 switch (opcodeTypes[instr.opcode][i]) {
                     case ArgType.Reg8:

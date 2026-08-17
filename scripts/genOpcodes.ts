@@ -24,33 +24,41 @@ const src = `\
 /**
  * Instruction argument types.
  */
-export const enum ArgType {
+export const ArgType = {
     /** Unsigned 8-bit value */
-    UInt8,
+    UInt8: 0,
     /** Unsigned 8-bit register index */
-    Reg8,
+    Reg8: 1,
     /** Signed 8-bit relative address */
-    Addr8,
+    Addr8: 2,
     /** Unsigned 16-bit value */
-    UInt16,
+    UInt16: 3,
     /** Unsigned 32-bit value */
-    UInt32,
+    UInt32: 4,
     /** Unsigned 32-bit register index */
-    Reg32,
+    Reg32: 5,
     /** Signed 32-bit immediate */
-    Imm32,
+    Imm32: 6,
     /** Signed 32-bit relative address */
-    Addr32,
+    Addr32: 7,
     /** Double-precision floating point number */
-    Double,
-}
+    Double: 8,
+} as const;
+
+export type ArgType = typeof ArgType[keyof typeof ArgType];
 
 /**
  * Numeric Hermes instruction opcodes.
  */
-export enum Opcode { //#region
-${entries(opcodes).map(([op]) => `    ${op},`).join("\n")}
-} //#endregion
+export const Opcode = {
+${entries(opcodes).map(([op], index) => `    ${op}: ${index},`).join("\n")}
+} as const;
+
+export type Opcode = typeof Opcode[keyof typeof Opcode];
+
+export const opcodeNames = {
+${entries(opcodes).map(([op], index) => `    ${index}: "${op}",`).join("\n")}
+} as const;
 
 export type OpcodeMap<T> = Readonly<Partial<Record<Opcode, T>>>;
 
@@ -59,56 +67,60 @@ export type OperandSet = OpcodeMap<readonly number[]>;
 /**
  * Argument type corresponding to {@link Opcode}.
  */
-export const opcodeTypes = { //#region
+export const opcodeTypes = {
 ${entries(opcodes).map(([op, args]) => `    [Opcode.${op}]: [${args.map(a => `ArgType.${a}`).join(", ")}],`).join("\n")}
-} as const; //#endregion
+} as const;
 
 /**
  * Opcodes which have operands referring to the bigint table.
  */
-const BIGINT_OPERANDS = { //#region
+const BIGINT_OPERANDS = {
 ${entries(bigIntOps).map(([op, args]) => `    [Opcode.${op}]: [${args.join(", ")}],`).join("\n")}
-} as const; //#endregion
+} as const;
 export type BigIntOperands = typeof BIGINT_OPERANDS;
 export const bigintOperands: OperandSet = BIGINT_OPERANDS;
 
 /**
  * Opcodes which have operands referring to the function table.
  */
-const FUNCTION_OPERANDS = { //#region
+const FUNCTION_OPERANDS = {
 ${entries(functionOps).map(([op, args]) => `    [Opcode.${op}]: [${args.join(", ")}],`).join("\n")}
-} as const; //#endregion
+} as const;
 export type FunctionOperands = typeof FUNCTION_OPERANDS;
 export const functionOperands: OperandSet = FUNCTION_OPERANDS;
 
 /**
  * Opcodes which have operands referring to the string table.
  */
-const STRING_OPERANDS = { //#region
+const STRING_OPERANDS = {
 ${entries(stringOps).map(([op, args]) => `    [Opcode.${op}]: [${args.join(", ")}],`).join("\n")}
-} as const; //#endregion
+} as const;
 export type StringOperands = typeof STRING_OPERANDS;
 export const stringOperands: OperandSet = STRING_OPERANDS;
 
-export enum Builtin { //#region
-${builtins.map(x => `    "${x}",`).join("\n")}
-} //#endregion
+export const Builtin = {
+${builtins.map((x, index) => `    "${x}": ${index},`).join("\n")}
+} as const;
+
+export type Builtin = typeof Builtin[keyof typeof Builtin];
+
+export const builtinNames = {
+${builtins.map((x, index) => `    ${index}: "${x}",`).join("\n")}
+};
 
 /**
  * Longer version of opcodes, allowing higher values in their arguments.
  */
-export const longOpcodes: OpcodeMap<Opcode> = { //#region
+export const longOpcodes: OpcodeMap<Opcode> = {
 ${entries(longOpcodes).map(([short, long]) => `    [Opcode.${short}]: Opcode.${long},`).join("\n")}
-}; //#endregion
+};
 
 /**
  * Normalised opcodes without a Short or Long suffix.
  */
-export const canonicalOpcodes: Readonly<Record<Opcode, Opcode>> = { //#region
+export const canonicalOpcodes: Readonly<Record<Opcode, Opcode>> = {
 ${entries(canonicalOpcodes).map(([opcode, canon]) => `    [Opcode.${opcode}]: Opcode.${canon},`).join("\n")}
-}; //#endregion
-
-// vim\: set foldenable foldmarker=//#region,//#endregion:
+};
 `;
 
 writeFile("decompiler/src/opcodes.ts", src);

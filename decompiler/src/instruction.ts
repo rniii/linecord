@@ -34,7 +34,7 @@ const operandIndexes = mapValues(opcodeTypes, args => {
 });
 
 export const opcodeWidths = mapValues(opcodeTypes, args => (
-    args.reduce((acc, arg) => acc + argWidths[arg], 1)
+    args.reduce<number>((acc, arg) => acc + argWidths[arg], 1)
 ));
 
 export type ParsedInstruction<Op extends Opcode = Opcode> = Op extends unknown
@@ -77,11 +77,15 @@ export function isValidOpcode(opcode: number): opcode is Opcode {
 }
 
 export class Instruction {
+    ip: number;
+    view: DataView;
     opcode: Opcode;
     width: number;
 
-    constructor(public ip: number, public view: DataView) {
-        this.opcode = view.getUint8(ip);
+    constructor(ip: number, view: DataView) {
+        this.ip = ip;
+        this.view = view;
+        this.opcode = view.getUint8(ip) as Opcode;
         this.width = opcodeWidths[this.opcode];
     }
 
