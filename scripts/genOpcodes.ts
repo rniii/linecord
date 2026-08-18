@@ -2,8 +2,9 @@ import { writeFile } from "fs/promises";
 
 import { entries } from "../utils/index.ts";
 
-// TODO: the bytecode version matches, but I don't know which RN version discord uses
-const HERMES_URL = "https://github.com/facebook/hermes/raw/c00cc57595";
+// Current React Native version in Discord is v0.86.0. Hermes is referenced here:
+// https://github.com/react/react-native/blob/v0.86.0/packages/react-native/package.json#L179
+const HERMES_URL = "https://github.com/facebook/hermes/raw/hermes-v250829098.0.14";
 const BYTECODE_URL = `${HERMES_URL}/include/hermes/BCGen/HBC/BytecodeList.def`;
 const BUILTINS_URL = `${HERMES_URL}/include/hermes/FrontEndDefs/Builtins.def`;
 
@@ -128,9 +129,7 @@ writeFile("decompiler/src/opcodes.ts", src);
 function parseBytecode(listing: string) {
     const OPCODE_RE = /^DEFINE_(\S+)_(\d)\((.*)\)$/gm;
     const OPERAND_RE = /^OPERAND_(\S+)_ID\((.*)\)$/gm;
-
-    const SHORT_RE = /Short$/;
-    const LONG_RE = /Long(Index)?$/;
+    const LENGTH_RE = /^(\S*?)(Short|Long(?:Index)?|L|)$/;
 
     for (const [, dir, count, operands] of listing.matchAll(OPCODE_RE)) {
         const [op, ...args] = operands.split(/, */);
@@ -147,19 +146,19 @@ function parseBytecode(listing: string) {
     }
 
     for (const op of Object.keys(opcodes)) {
-        let canon = op;
+        const [, canon, suffix] = op.match(LENGTH_RE)!;
 
-        if (SHORT_RE.test(op)) {
-            canon = op.replace(SHORT_RE, "");
+        if (canon in opcodes) {
+            if (suffix === "Short") {
+                longOpcodes[op] = canon;
+            } else if (suffix) {
+                longOpcodes[canon] = op;
+            }
 
-            longOpcodes[op] = canon;
-        } else if (LONG_RE.test(op)) {
-            canon = op.replace(LONG_RE, "");
-
-            longOpcodes[canon] = op;
+            canonicalOpcodes[op] = canon;
+        } else {
+            canonicalOpcodes[op] = op;
         }
-
-        canonicalOpcodes[op] = canon;
     }
 
     for (const [, dir, operands] of listing.matchAll(OPERAND_RE)) {
