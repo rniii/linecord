@@ -11,15 +11,17 @@ const functionHeaderFlagFields = {
 
 export const smallFunctionHeader = new Bitfield({
     offset: 25,
-    paramCount: 7,
-    bytecodeSizeInBytes: 15,
-    functionName: 17,
-    // infoOffset: 25,
-    // frameSize: 7,
+    paramCount: 5,
+    loopDepth: 2,
+    bytecodeSizeInBytes: 14,
+    functionName: 8,
+    numberRegCount: 5,
+    nonPtrRegCount: 5,
     frameSize: 8,
-    // environmentSize: 8,
-    highestReadCacheIndex: 8,
-    highestWriteCacheIndex: 8,
+    readCacheSize: 8,
+    writeCacheSize: 6,
+    numCacheNewObject: 1,
+    privateNameCacheSize: 1,
 
     ...functionHeaderFlagFields,
 });
@@ -27,13 +29,16 @@ export const smallFunctionHeader = new Bitfield({
 export const largeFunctionHeader = new Bitfield({
     offset: 32,
     paramCount: 32,
+    loopDepth: 32,
     bytecodeSizeInBytes: 32,
     functionName: 32,
-    // infoOffset: 32,
+    numberRegCount: 32,
+    nonPtrRegCount: 32,
     frameSize: 32,
-    // environmentSize: 32,
-    highestReadCacheIndex: 8,
-    highestWriteCacheIndex: 8,
+    readCacheSize: 8,
+    writeCacheSize: 8,
+    numCacheNewObject: 8,
+    privateNameCacheSize: 8,
 
     ...functionHeaderFlagFields,
 });

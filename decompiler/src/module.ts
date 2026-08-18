@@ -13,7 +13,7 @@ import {
 } from "./bitfields.ts";
 import type { ModuleBytecode, ModuleFunction } from "./function.ts";
 
-// https://github.com/facebook/hermes/blob/c00cc57595/include/hermes/BCGen/HBC/BytecodeVersion.h#L23
+// https://github.com/facebook/hermes/blob/hermes-v250829098.0.14/include/hermes/BCGen/HBC/BytecodeVersion.h#L23
 export const HERMES_VERSION = 98;
 
 // https://github.com/facebook/hermes/blob/v0.13.0/include/hermes/BCGen/HBC/BytecodeFileFormat.h#L27
@@ -177,16 +177,43 @@ export class HermesModule {
 export function parseHermesModule(buffer: ArrayBuffer) {
     const header = parseHeader(buffer);
     const segments = mapValues(segmentModule(header), p => new Uint8Array(buffer, ...p));
+    console.log(header);
 
     return new HermesModule(header, segments, buffer);
 }
 
 function parseFunctions(segments: Record<Segment, Uint8Array>, buffer: ArrayBuffer) {
-    return [[], []] as [ModuleBytecode[], ModuleFunction[]];
+    const view = new DataView(buffer);
+
+    const functionHeaders = smallFunctionHeader.parseArray(segments.functionHeaders);
+
+    for (const header of functionHeaders) {
+        if (!header.overflowed) continue;
+
+        const largeHeader = largeFunctionHeader.parse(view, getLargeOffset(header));
+        largeHeader.overflowed = 1;
+        Object.assign(header, largeHeader);
+    }
+
+    const functions = functionHeaders.map((header, id) => {
+        const bytecode: ModuleBytecode = {
+            opcodes: new Uint8Array(buffer, header.offset, header.bytecodeSizeInBytes),
+        };
+
+        const func: ModuleFunction = {
+            id, header, bytecode,
+            exceptionHandlers: undefined,
+            debugOffsets: undefined,
+        };
+
+        return func;
+    });
+
+    return [[], functions] as [ModuleBytecode[], ModuleFunction[]];
 }
 
 function getLargeOffset(smallHeader: FunctionHeader) {
-    return ((smallHeader.functionName << 16) | smallHeader.offset) >>> 0;
+    return ((smallHeader.functionName << 24) | smallHeader.offset) >>> 0;
 }
 
 export type Segment = keyof ReturnType<typeof segmentModule>;
@@ -252,6 +279,7 @@ export function parseHeader(buffer: ArrayBuffer) {
             "literalValueBufferSize",
             "objKeyBufferSize",
             "objShapeTableCount",
+            "numStringSwitchImms",
             "segmentID",
             "cjsModuleCount",
             "functionSourceCount",
