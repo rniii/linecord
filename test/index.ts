@@ -20,6 +20,18 @@ console.timeEnd("write");
 const hash = new Uint8Array(await crypto.subtle.digest("SHA-1", patched.subarray(0, patched.byteLength - 20)));
 
 if (hash.some((x, i) => origHash[i] !== x)) {
+    console.log(`Original: ${buffer.byteLength}`);
+    console.log(`Patched:  ${patched.byteLength}`);
+
+    const data = new Uint8Array(buffer);
+
+    for (let i = 128; i < data.length; i++) {
+        if (data[i] !== patched[i]) {
+            console.warn(`File differs after byte ${i}`);
+            break;
+        }
+    }
+
     throw Error(`Hash mismatch: ${Array.from(hash, x => x.toString(16).padStart(2, "0")).join("")}`);
 }
 

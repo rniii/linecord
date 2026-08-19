@@ -1,7 +1,7 @@
-import { fromEntries, mapValues, padSize, toBigInt } from "../../utils/index.ts";
+import { bisect, fromEntries, mapValues, padSize, toBigInt } from "../../utils/index.ts";
 import {
-    type FunctionHeader,
     functionSourceEntry,
+    getLargeOffset,
     identifierHash,
     largeFunctionHeader,
     offsetLengthPair,
@@ -11,7 +11,7 @@ import {
     type StringTableEntry,
     stringTableEntry,
 } from "./bitfields.ts";
-import type { ModuleBytecode, ModuleFunction } from "./function.ts";
+import { ModuleBytecode, ModuleFunction } from "./function.ts";
 
 // https://github.com/facebook/hermes/blob/hermes-v250829098.0.14/include/hermes/BCGen/HBC/BytecodeVersion.h#L23
 export const HERMES_VERSION = 98;
@@ -106,6 +106,7 @@ export class HermesModule {
     sourceHash: Uint8Array;
     globalCodeIndex: number;
     segmentID: number;
+    numStringSwitchImms: number;
     options: number;
 
     // some segments which are not parsed, but are written back to patched files
@@ -133,6 +134,7 @@ export class HermesModule {
         this.sourceHash = header.hash;
         this.globalCodeIndex = header.globalCodeIndex;
         this.segmentID = header.segmentID;
+        this.numStringSwitchImms = header.numStringSwitchImms;
         this.options = header.options;
 
         this.identifierHashes = segments.identifierHashes;
@@ -177,72 +179,107 @@ export class HermesModule {
 export function parseHermesModule(buffer: ArrayBuffer) {
     const header = parseHeader(buffer);
     const segments = mapValues(segmentModule(header), p => new Uint8Array(buffer, ...p));
-    console.log(header);
 
     return new HermesModule(header, segments, buffer);
 }
 
-function parseFunctions(segments: Record<Segment, Uint8Array>, buffer: ArrayBuffer) {
+function parseFunctions(
+    segments: Record<Segment, Uint8Array>,
+    buffer: ArrayBuffer,
+): [ModuleBytecode[], ModuleFunction[]] {
     const view = new DataView(buffer);
 
-    const functionHeaders = smallFunctionHeader.parseArray(segments.functionHeaders);
+    let bytecodeEnd = 0;
 
-    for (const header of functionHeaders) {
-        if (!header.overflowed) continue;
+    const smallHeaders = smallFunctionHeader.parseArray(segments.functionHeaders);
+    const functionHeaders = smallHeaders.map(header => {
+        if (header.overflowed) {
+            const offset = getLargeOffset(header);
+            header = largeFunctionHeader.parse(view, offset);
+            header.overflowed = 1;
 
-        const largeHeader = largeFunctionHeader.parse(view, getLargeOffset(header));
-        largeHeader.overflowed = 1;
-        Object.assign(header, largeHeader);
-    }
+            if (!bytecodeEnd) bytecodeEnd = offset; // overflowed headers start after bytecode
+        }
 
-    const functions = functionHeaders.map((header, id) => {
-        const bytecode: ModuleBytecode = {
-            opcodes: new Uint8Array(buffer, header.offset, header.bytecodeSizeInBytes),
-        };
-
-        const func: ModuleFunction = {
-            id, header, bytecode,
-            exceptionHandlers: undefined,
-            debugOffsets: undefined,
-        };
-
-        return func;
+        return header;
     });
 
-    return [[], functions] as [ModuleBytecode[], ModuleFunction[]];
-}
+    bytecodeEnd ||= segments.debugInfo[0];
 
-function getLargeOffset(smallHeader: FunctionHeader) {
-    return ((smallHeader.functionName << 24) | smallHeader.offset) >>> 0;
+    const bytecodeOffsets: number[] = [];
+    const bytecodeLengths: number[] = [];
+    const bytecodeIndex: number[] = [];
+
+    for (const header of functionHeaders) {
+        const idx = bisect(bytecodeOffsets, header.offset);
+
+        if (bytecodeOffsets[idx] !== header.offset) {
+            bytecodeOffsets.splice(idx, 0, header.offset);
+            bytecodeLengths.splice(idx, 0, header.bytecodeSizeInBytes);
+        } else if (bytecodeLengths[idx] !== header.bytecodeSizeInBytes) {
+            if (bytecodeLengths[idx] === 0) {
+                bytecodeOffsets.splice(idx + 1, 0, header.offset);
+                bytecodeLengths.splice(idx + 1, 0, header.bytecodeSizeInBytes);
+            } else {
+                throw Error("what?");
+            }
+        }
+
+        bytecodeIndex.push(idx);
+    }
+
+    if (bytecodeOffsets[0] !== segments.bytecodeAndFunctionInfo.byteOffset) {
+        throw Error(`Earliest bytecode is ${bytecodeOffsets[0]} after ${segments.bytecodeAndFunctionInfo[0]}`);
+    }
+
+    const bytecode = bytecodeOffsets.map((offset, idx) => new ModuleBytecode(
+        buffer,
+        offset,
+        bytecodeLengths[idx],
+        bytecodeOffsets[idx + 1] ?? bytecodeEnd,
+    ));
+
+    const functions = functionHeaders.map((header, id) => new ModuleFunction(
+        id,
+        header,
+        smallHeaders[id],
+        bytecode[bytecodeIndex[id]],
+        buffer,
+    ));
+
+    return [bytecode, functions];
 }
 
 export type Segment = keyof ReturnType<typeof segmentModule>;
 
 export function segmentModule(header: Header) {
-    let i = 128;
+    let offset = 128;
 
-    return mapValues({
-        functionHeaders: header.functionCount * smallFunctionHeader.byteSize,
-        stringKinds: header.stringKindCount * stringKind.byteSize,
-        identifierHashes: header.identifierCount * identifierHash.byteSize,
-        stringTable: header.stringCount * stringTableEntry.byteSize,
-        overflowStringTable: header.overflowStringCount * offsetLengthPair.byteSize,
-        stringStorage: header.stringStorageSize,
-        literalValueBuffer: header.literalValueBufferSize,
-        objectKeyBuffer: header.objKeyBufferSize,
-        objectShapeTable: header.objShapeTableCount * offsetLengthPair.byteSize,
-        bigIntTable: header.bigIntCount * offsetLengthPair.byteSize,
-        bigIntStorage: header.bigIntStorageSize,
-        regExpTable: header.regExpCount * offsetLengthPair.byteSize,
-        regExpStorage: header.regExpStorageSize,
-        cjsModuleTable: header.cjsModuleCount * offsetLengthPair.byteSize,
-        functionSourceTable: header.functionSourceCount * functionSourceEntry.byteSize,
-        bytecodeStart: 0,
-    }, size => {
-        const offset = i;
-        i += padSize(size);
-        return [offset, size];
-    });
+    return {
+        ...mapValues({
+            functionHeaders: header.functionCount * smallFunctionHeader.byteSize,
+            stringKinds: header.stringKindCount * stringKind.byteSize,
+            identifierHashes: header.identifierCount * identifierHash.byteSize,
+            stringTable: header.stringCount * stringTableEntry.byteSize,
+            overflowStringTable: header.overflowStringCount * offsetLengthPair.byteSize,
+            stringStorage: header.stringStorageSize,
+            literalValueBuffer: header.literalValueBufferSize,
+            objectKeyBuffer: header.objKeyBufferSize,
+            objectShapeTable: header.objShapeTableCount * offsetLengthPair.byteSize,
+            bigIntTable: header.bigIntCount * offsetLengthPair.byteSize,
+            bigIntStorage: header.bigIntStorageSize,
+            regExpTable: header.regExpCount * offsetLengthPair.byteSize,
+            regExpStorage: header.regExpStorageSize,
+            cjsModuleTable: header.cjsModuleCount * offsetLengthPair.byteSize,
+            functionSourceTable: header.functionSourceCount * functionSourceEntry.byteSize,
+        }, size => {
+            const start = offset;
+            offset += padSize(size);
+            return [start, size];
+        }),
+        bytecodeAndFunctionInfo: [offset, header.debugInfoOffset - offset],
+        debugInfo: [header.debugInfoOffset, header.fileLength - header.debugInfoOffset],
+    } satisfies Record<string, [number, number]>;
 }
 
 export type Header = ReturnType<typeof parseHeader>;

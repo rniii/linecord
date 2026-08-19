@@ -45,6 +45,10 @@ export const largeFunctionHeader = new Bitfield({
 
 export type FunctionHeader = ParsedBitfield<typeof largeFunctionHeader>;
 
+export function getLargeOffset(smallHeader: FunctionHeader) {
+    return ((smallHeader.functionName << 24) | smallHeader.offset) >>> 0;
+}
+
 export const stringKind = new Bitfield({
     count: 31,
     kind: 1,
@@ -79,3 +83,20 @@ export const functionSourceEntry = new Bitfield({
 });
 
 export type FunctionSourceEntry = ParsedBitfield<typeof functionSourceEntry>;
+
+export const exceptionHandlerInfo = new Bitfield({
+    start: 32,
+    end: 32,
+    target: 32,
+});
+
+export type ExceptionHandlerInfo = ParsedBitfield<typeof exceptionHandlerInfo>;
+
+export const debugOffsets = new Bitfield({
+    filenameCount: 32,
+    filenameStorageSize: 32,
+    fileRegionCount: 32,
+    debugDataSize: 32,
+});
+
+export type DebugOffsets = ParsedBitfield<typeof debugOffsets>;

@@ -1,5 +1,7 @@
 import { entries, padSize } from "../../utils/index.ts";
 import {
+    debugOffsets,
+    exceptionHandlerInfo,
     type FunctionHeader,
     identifierHash,
     largeFunctionHeader,
@@ -30,6 +32,7 @@ export function writeHermesModule(module: HermesModule) {
         literalValueBufferSize: module.literalValueBuffer.byteLength,
         objKeyBufferSize: module.objectKeyBuffer.byteLength,
         objShapeTableCount: module.objects.length,
+        numStringSwitchImms: module.numStringSwitchImms,
         segmentID: module.segmentID,
         cjsModuleCount: module.cjsModuleTable.byteLength / offsetLengthPair.byteSize,
         functionSourceCount: module.functionSourceTable.byteLength / offsetLengthPair.byteSize,
@@ -39,7 +42,7 @@ export function writeHermesModule(module: HermesModule) {
 
     const segments = segmentModule(header);
 
-    let offset = segments.bytecodeStart[0];
+    let offset = segments.bytecodeAndFunctionInfo[0];
 
     const bcMap = new Map<ModuleBytecode, number>();
 
@@ -57,8 +60,7 @@ export function writeHermesModule(module: HermesModule) {
         ...func.header,
         offset: bcMap.get(func.bytecode)!,
         bytecodeSizeInBytes: func.bytecode.opcodes.byteLength,
-        infoOffset: 0,
-        hasExceptionHandler: +!!func.exceptionHandlers,
+        hasExceptionHandler: +!!func.exceptionTable,
         hasDebugInfo: +!!func.debugOffsets,
         overflowed: 0,
     }));
@@ -69,14 +71,15 @@ export function writeHermesModule(module: HermesModule) {
 
     for (const [i, func] of module.functions.entries()) {
         const header = funcHeaders[i];
-        header.infoOffset = offset;
 
-        const small = getSmallHeader(header);
+        const small = getSmallHeader(header, offset);
         smallHeaders.push(small);
 
-        if (smallHeaders[i].overflowed) offset += largeFunctionHeader.byteSize;
-        if (func.exceptionHandlers) offset += 4 + func.exceptionHandlers.length * 12;
-        if (func.debugOffsets) offset += 12;
+        if (!small.overflowed) continue;
+
+        offset += largeFunctionHeader.byteSize;
+        if (func.exceptionTable) offset += 4 + func.exceptionTable.length * exceptionHandlerInfo.byteSize;
+        if (func.debugOffsets) offset += debugOffsets.byteSize;
     }
 
     if (module.debugInfo) {
@@ -128,6 +131,8 @@ export function writeHermesModule(module: HermesModule) {
         data.set(segment, offset);
     }
 
+    offset = segments.bytecodeAndFunctionInfo[0];
+
     for (let [bytecode, offset] of bcMap) {
         data.set(bytecode.opcodes, offset);
         offset += bytecode.opcodes.byteLength;
@@ -142,29 +147,20 @@ export function writeHermesModule(module: HermesModule) {
         const header = funcHeaders[i];
         const smallHeader = smallHeaders[i];
 
-        offset = header.infoOffset;
-
         if (smallHeader.overflowed) {
             largeFunctionHeader.write(view, offset, header);
 
             offset += largeFunctionHeader.byteSize;
         }
-        if (func.exceptionHandlers) {
-            view.setUint32(offset, func.exceptionHandlers.length, true);
+        if (func.exceptionTable) {
+            view.setUint32(offset, func.exceptionTable.length, true);
             offset += 4;
-
-            for (const handler of func.exceptionHandlers) {
-                view.setUint32(offset, handler[0], true);
-                view.setUint32(offset + 4, handler[1], true);
-                view.setUint32(offset + 8, handler[2], true);
-                offset += 12;
-            }
+            exceptionHandlerInfo.writeItems(view, offset, func.exceptionTable);
+            offset += exceptionHandlerInfo.byteSize * func.exceptionTable.length;
         }
         if (func.debugOffsets) {
-            view.setUint32(offset, func.debugOffsets[0], true);
-            view.setUint32(offset + 4, func.debugOffsets[1], true);
-            view.setUint32(offset + 8, func.debugOffsets[2], true);
-            offset += 12;
+            debugOffsets.write(view, offset, func.debugOffsets);
+            offset += debugOffsets.byteSize;
         }
     }
 
@@ -173,26 +169,18 @@ export function writeHermesModule(module: HermesModule) {
     return data;
 }
 
-function getSmallHeader(funcHeader: FunctionHeader) {
-    const copy = {} as FunctionHeader;
-
-    // copy flags first
-    copy.prohibitInvoke = funcHeader.prohibitInvoke;
-    copy.strictMode = funcHeader.strictMode;
-    copy.hasExceptionHandler = funcHeader.hasExceptionHandler;
-    copy.hasDebugInfo = funcHeader.hasDebugInfo;
-
-    for (const [field, { mask }] of smallFunctionHeader.segments) {
-        if (funcHeader[field] > mask) {
-            copy.offset = (funcHeader.infoOffset & 0xffff) >>> 0;
-            copy.infoOffset = funcHeader.infoOffset >>> 16;
-            copy.overflowed = 1;
-
-            return copy;
-        }
-
-        copy[field] = funcHeader[field];
+function getSmallHeader(funcHeader: FunctionHeader, infoOffset: number) {
+    if (
+        funcHeader.hasExceptionHandler || funcHeader.hasDebugInfo ||
+        smallFunctionHeader.segments.some(([field, { mask }]) => funcHeader[field] > mask)
+    ) {
+        return {
+            ...Object.fromEntries(smallFunctionHeader.segments.map(([field]) => [field, 0])),
+            offset: infoOffset & 0xff_ffff,
+            functionName: (infoOffset >> 24) & 0xff,
+            overflowed: 1,
+        } as FunctionHeader;
     }
 
-    return copy;
+    return funcHeader;
 }

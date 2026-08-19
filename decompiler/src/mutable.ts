@@ -1,6 +1,6 @@
 import { bisect } from "../../utils/index.ts";
-import { type StringTableEntry, stringTableEntry } from "./bitfields.ts";
-import type { DebugOffsets, ExceptionHandler, ModuleBytecode, ModuleFunction, PartialFunctionHeader } from "./function.ts";
+import { type DebugOffsets, type ExceptionHandlerInfo, type StringTableEntry, stringTableEntry } from "./bitfields.ts";
+import { ModuleBytecode, type ModuleFunction, type PartialFunctionHeader } from "./function.ts";
 import { Instruction } from "./instruction.ts";
 import { HermesModule } from "./module.ts";
 import { Rope } from "./rope.ts";
@@ -100,7 +100,7 @@ export class ModulePatcher {
                 id: func.id,
                 header: func.header,
                 bytecode,
-                exceptionHandlers: func.exceptionHandlers,
+                exceptionTable: func.exceptionTable,
                 debugOffsets: func.debugOffsets,
             };
             module.bytecode.push(bytecode);
@@ -134,7 +134,7 @@ export class MutableFunction {
     header: PartialFunctionHeader;
     bytecode: Rope<Uint8Array>;
     jumpTables?: Uint8Array;
-    exceptionHandlers?: ExceptionHandler[];
+    exceptionTable?: ExceptionHandlerInfo[];
     debugOffsets?: DebugOffsets;
 
     constructor(module: ModulePatcher, inner: ModuleFunction) {
@@ -143,8 +143,8 @@ export class MutableFunction {
         this.header = { ...inner.header };
         this.bytecode = Rope.from(inner.bytecode.opcodes);
         this.jumpTables = inner.bytecode.jumpTables;
-        this.exceptionHandlers = inner.exceptionHandlers?.map(e => [...e]);
-        this.debugOffsets = inner.debugOffsets && [...inner.debugOffsets];
+        this.exceptionTable = inner.exceptionTable?.map(e => ({ ...e }));
+        this.debugOffsets = inner.debugOffsets && { ...inner.debugOffsets };
     }
 
     replace(start: number, end: number, bytes: Uint8Array) {
