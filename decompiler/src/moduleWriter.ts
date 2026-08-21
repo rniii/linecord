@@ -6,6 +6,7 @@ import {
     identifierHash,
     largeFunctionHeader,
     offsetLengthPair,
+    shapeTableEntry,
     smallFunctionHeader,
     stringKind,
     stringTableEntry,
@@ -31,7 +32,7 @@ export function writeHermesModule(module: HermesModule) {
         regExpStorageSize: module.regExps.storage.byteLength,
         literalValueBufferSize: module.literalValueBuffer.byteLength,
         objKeyBufferSize: module.objectKeyBuffer.byteLength,
-        objShapeTableCount: module.objects.length,
+        objShapeTableCount: module.objectShapes.length,
         numStringSwitchImms: module.numStringSwitchImms,
         segmentID: module.segmentID,
         cjsModuleCount: module.cjsModuleTable.byteLength / offsetLengthPair.byteSize,
@@ -119,7 +120,7 @@ export function writeHermesModule(module: HermesModule) {
     data.set(module.strings.storage, segments.stringStorage[0]);
     data.set(module.literalValueBuffer, segments.literalValueBuffer[0]);
     data.set(module.objectKeyBuffer, segments.objectKeyBuffer[0]);
-    data.set(module.objects.storage, segments.objectShapeTable[0]);
+    shapeTableEntry.writeItems(view, segments.objectShapeTable[0], module.objectShapes);
     offsetLengthPair.writeItems(view, segments.bigIntTable[0], module.bigInts.entries);
     data.set(module.bigInts.storage, segments.bigIntStorage[0]);
     offsetLengthPair.writeItems(view, segments.regExpTable[0], module.regExps.entries);
@@ -170,8 +171,8 @@ export function writeHermesModule(module: HermesModule) {
 
 function getSmallHeader(funcHeader: FunctionHeader, infoOffset: number) {
     if (
-        funcHeader.hasExceptionHandler || funcHeader.hasDebugInfo ||
-        smallFunctionHeader.segments.some(([field, { mask }]) => funcHeader[field] > mask)
+        funcHeader.hasExceptionHandler || funcHeader.hasDebugInfo
+        || smallFunctionHeader.segments.some(([field, { mask }]) => funcHeader[field] > mask)
     ) {
         return {
             ...Object.fromEntries(smallFunctionHeader.segments.map(([field]) => [field, 0])),

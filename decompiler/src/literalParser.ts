@@ -1,6 +1,6 @@
 import type { StringTable } from "./module.ts";
 
-export type Literal = number | string | boolean | null;
+export type Literal = number | string | boolean | null | undefined;
 
 const TagType = {
     Null: 0,
@@ -9,7 +9,7 @@ const TagType = {
     Number: 3,
     LongString: 4,
     ShortString: 5,
-    ByteString: 6,
+    UndefinedTag: 6,
     Integer: 7,
 } as const;
 
@@ -56,9 +56,8 @@ export function parseLiterals(buffer: Uint8Array, offset: number, count: number,
                     literals.push(strings.get(view.getUint16(offset, true)));
                     offset += 2;
                     continue;
-                case TagType.ByteString:
-                    literals.push(strings.get(view.getUint8(offset)));
-                    offset += 1;
+                case TagType.UndefinedTag:
+                    literals.push(undefined);
                     continue;
                 case TagType.Integer:
                     literals.push(view.getUint32(offset, true));

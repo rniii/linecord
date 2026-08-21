@@ -5,6 +5,8 @@ import {
     identifierHash,
     largeFunctionHeader,
     offsetLengthPair,
+    type ShapeTableEntry,
+    shapeTableEntry,
     smallFunctionHeader,
     type StringKind,
     stringKind,
@@ -96,12 +98,6 @@ export class RegExpTable extends DataTable<never> {
     }
 }
 
-export class ObjectTable extends DataTable<never> {
-    get(): never {
-        throw "fish";
-    }
-}
-
 export class HermesModule {
     sourceHash: Uint8Array;
     globalCodeIndex: number;
@@ -121,7 +117,7 @@ export class HermesModule {
     strings: StringTable;
     bigInts: BigIntTable;
     regExps: RegExpTable;
-    objects: ObjectTable;
+    objectShapes: ShapeTableEntry[];
 
     bytecode: ModuleBytecode[];
     functions: ModuleFunction[];
@@ -167,10 +163,7 @@ export class HermesModule {
             segments.regExpStorage,
             offsetLengthPair.parseArray(segments.regExpTable),
         );
-        this.objects = new ObjectTable(
-            segments.objectShapeTable,
-            offsetLengthPair.parseArray(segments.objectShapeTable),
-        );
+        this.objectShapes = shapeTableEntry.parseArray(segments.objectShapeTable);
 
         [this.bytecode, this.functions] = parseFunctions(segments, buffer);
     }

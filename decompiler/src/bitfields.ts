@@ -77,6 +77,13 @@ export const offsetLengthPair = new Bitfield({
 
 export type OffsetLengthPair = ParsedBitfield<typeof offsetLengthPair>;
 
+export const shapeTableEntry = new Bitfield({
+    keyBufferOffset: 32,
+    numProps: 32,
+});
+
+export type ShapeTableEntry = ParsedBitfield<typeof shapeTableEntry>;
+
 export const functionSourceEntry = new Bitfield({
     functionId: 32,
     stringId: 32,
