@@ -8,7 +8,8 @@ const HERMES_URL = "https://github.com/facebook/hermes/raw/hermes-v250829098.0.1
 const BYTECODE_URL = `${HERMES_URL}/include/hermes/BCGen/HBC/BytecodeList.def`;
 const BUILTINS_URL = `${HERMES_URL}/include/hermes/FrontEndDefs/Builtins.def`;
 
-const opcodes = {} as Record<string, string[]>;
+const opcodeDocs = {} as Record<string, string>;
+const opcodeTypes = {} as Record<string, string[]>;
 const bigIntOps = {} as Record<string, number[]>;
 const functionOps = {} as Record<string, number[]>;
 const stringOps = {} as Record<string, number[]>;
@@ -52,13 +53,13 @@ export type ArgType = typeof ArgType[keyof typeof ArgType];
  * Numeric Hermes instruction opcodes.
  */
 export const Opcode = {
-${entries(opcodes).map(([op], index) => `    ${op}: ${index},`).join("\n")}
+${entries(opcodeTypes).map(([op], index) => getJsdoc(op) + `    ${op}: ${index},`).join("\n")}
 } as const;
 
 export type Opcode = typeof Opcode[keyof typeof Opcode];
 
 export const opcodeNames = {
-${entries(opcodes).map(([op], index) => `    ${index}: "${op}",`).join("\n")}
+${entries(opcodeTypes).map(([op], index) => `    ${index}: "${op}",`).join("\n")}
 } as const;
 
 export type OpcodeMap<T> = Readonly<Partial<Record<Opcode, T>>>;
@@ -69,7 +70,7 @@ export type OperandSet = OpcodeMap<readonly number[]>;
  * Argument type corresponding to {@link Opcode}.
  */
 export const opcodeTypes = {
-${entries(opcodes).map(([op, args]) => `    [Opcode.${op}]: [${args.map(a => `ArgType.${a}`).join(", ")}],`).join("\n")}
+${entries(opcodeTypes).map(([op, args]) => `    [Opcode.${op}]: [${args.map(a => `ArgType.${a}`).join(", ")}],`).join("\n")}
 } as const;
 
 /**
@@ -126,29 +127,69 @@ ${entries(canonicalOpcodes).map(([opcode, canon]) => `    [Opcode.${opcode}]: Op
 
 writeFile("decompiler/src/opcodes.ts", src);
 
+function getJsdoc(opcode: string) {
+    const doc = opcodeDocs[opcode];
+    if (!doc) return "";
+
+    return "    /**" +
+        doc.trimEnd().replace(/^|\n/g, "\n     * ") +
+        "\n     */\n";
+}
+
 function parseBytecode(listing: string) {
-    const OPCODE_RE = /^DEFINE_(\S+)_(\d)\((.*)\)$/gm;
-    const OPERAND_RE = /^OPERAND_(\S+)_ID\((.*)\)$/gm;
+    const DOC_RE = /^\/\/\/ (.*)$/;
+    const MACRO_RE = /^(\S+?)(?:_(\d))?\((.*)\)$/;
     const LENGTH_RE = /^(\S*?)(Short|Long(?:Index)?|L|)$/;
 
-    for (const [, dir, count, operands] of listing.matchAll(OPCODE_RE)) {
-        const [op, ...args] = operands.split(/, */);
+    let curDoc = "";
+    for (const line of listing.split("\n")) {
+        if (!line) {
+            curDoc = "";
+            continue;
+        }
 
-        if (dir == "OPCODE") {
-            opcodes[op] = args;
-        } else if (dir == "JUMP") {
-            const args = Array.from(Array(+count - 1), () => "Reg8");
-            opcodes[op] = ["Addr8", ...args];
-            opcodes[op + "Long"] = ["Addr32", ...args];
-        } else {
-            throw Error(`Unknown definition: ${dir}`);
+        if (DOC_RE.test(line)) {
+            const [, doc] = line.match(DOC_RE)!;
+            curDoc += doc + "\n";
+            continue;
+        }
+
+        if (MACRO_RE.test(line)) {
+            const [, macro, count, argsStr] = line.match(MACRO_RE)!;
+            const args = argsStr.split(/, */);
+
+            if (macro === "DEFINE_OPCODE") {
+                opcodeTypes[args[0]] = args.slice(1);
+                opcodeDocs[args[0]] = curDoc;
+            } else if (macro === "DEFINE_JUMP") {
+                const regs = Array.from(Array(+count - 1), () => "Reg8");
+                opcodeTypes[args[0]] = ["Addr8", ...regs];
+                opcodeTypes[args[0] + "Long"] = ["Addr32", ...regs];
+                opcodeDocs[args[0]] = curDoc;
+                opcodeDocs[args[0] + "Long"] = curDoc;
+            } else if (macro === "OPERAND_BIGINT_ID") {
+                (bigIntOps[args[0]] ??= []).push(+args[1] - 1);
+            } else if (macro === "OPERAND_FUNCTION_ID") {
+                (functionOps[args[0]] ??= []).push(+args[1] - 1);
+            } else if (macro === "OPERAND_STRING_ID") {
+                (stringOps[args[0]] ??= []).push(+args[1] - 1);
+            } else if (!macro.startsWith("ASSERT_") && ![
+                "DEFINE_OPERAND_TYPE",
+                "DEFINE_RET_TARGET",
+                "DEFINE_JUMP_LONG_VARIANT",
+            ].includes(macro)) {
+                throw Error(`Unknown macro: ${macro}(${argsStr})`);
+            }
+
+            curDoc = "";
+            continue;
         }
     }
 
-    for (const op of Object.keys(opcodes)) {
+    for (const op of Object.keys(opcodeTypes)) {
         const [, canon, suffix] = op.match(LENGTH_RE)!;
 
-        if (canon in opcodes) {
+        if (canon in opcodeTypes) {
             if (suffix === "Short") {
                 longOpcodes[op] = canon;
             } else if (suffix) {
@@ -159,15 +200,6 @@ function parseBytecode(listing: string) {
         } else {
             canonicalOpcodes[op] = op;
         }
-    }
-
-    for (const [, dir, operands] of listing.matchAll(OPERAND_RE)) {
-        const [name, idx] = operands.split(/, */);
-
-        if (dir == "BIGINT") (bigIntOps[name] ??= []).push(+idx - 1);
-        else if (dir == "FUNCTION") (functionOps[name] ??= []).push(+idx - 1);
-        else if (dir == "STRING") (stringOps[name] ??= []).push(+idx - 1);
-        else throw Error(`Unknown definition: ${dir}`);
     }
 }
 

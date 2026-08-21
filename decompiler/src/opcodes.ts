@@ -30,190 +30,970 @@ export type ArgType = typeof ArgType[keyof typeof ArgType];
  * Numeric Hermes instruction opcodes.
  */
 export const Opcode = {
+    /**
+     * Unreachable opcode for stubs and similar. This is first so that it has the
+     * value zero.
+     */
     Unreachable: 0,
+    /**
+     * Create an object from a static map of values, as for var={'a': 3}.
+     * Any non-constant elements can be set afterwards with PutOwnByInd.
+     * Arg1 is the destination.
+     * Arg2 is the index in the object shape table.
+     * Arg3 is the index in the object val buffer table.
+     */
     NewObjectWithBuffer: 1,
     NewObjectWithBufferLong: 2,
+    /**
+     * Create an object from a static map of values, setting its parent.
+     * Arg1 is the destination.
+     * Arg2 is the parent.
+     * Arg3 is the index in the object shape table.
+     * Arg4 is the index in the object val buffer table.
+     */
     NewObjectWithBufferAndParent: 3,
+    /**
+     * Create a new, empty Object using the built-in constructor (regardless of
+     * whether it was overridden).
+     * Arg1 = {}
+     */
     NewObject: 4,
+    /**
+     * Create a new empty Object with the specified parent. If the parent is
+     * null, no parent is used. If the parent is not an object, the builtin
+     * Object.prototype is used. Otherwise the parent itself is used.
+     * Arg1 = the created object
+     * Arg2 = the parent.
+     */
     NewObjectWithParent: 5,
+    /**
+     * Create an array from a static list of values, as for var=[1,2,3].
+     * Any non-constant elements can be set afterwards with DefineOwnByIndex.
+     * Arg1 is the destination.
+     * Arg2 is a preallocation size hint.
+     * Arg3 is the number of static elements.
+     * Arg4 is the index in the array buffer table.
+     */
     NewArrayWithBuffer: 6,
     NewArrayWithBufferLong: 7,
+    /**
+     * Create a new array of a given size.
+     * Arg1 = new Array(Arg2)
+     */
     NewArray: 8,
+    /**
+     * Create a new FastArray.
+     * Arg1 = new FastArray(Arg2)
+     */
     NewFastArray: 9,
+    /**
+     * Get the length of a FastArray.
+     * Arg1 = Arg2.length
+     */
     FastArrayLength: 10,
+    /**
+     * Load from a FastArray.
+     * Arg1 = Arg2[Arg3]
+     */
     FastArrayLoad: 11,
+    /**
+     * Store to a FastArray.
+     * Arg1[Arg2] = Arg3
+     */
     FastArrayStore: 12,
+    /**
+     * Push an element onto the end of a FastArray.
+     * Arg1.push(Arg2)
+     */
     FastArrayPush: 13,
+    /**
+     * Append a FastArray onto another FastArray.
+     * Arg1.append(Arg2)
+     */
     FastArrayAppend: 14,
+    /**
+     * Perform a lookup on the new object cache.
+     * Arg1 = the 'this' value to lookup
+     * Arg2 = the new target to determine whether it is a constructor call
+     * Arg3 = the index in the shape table.
+     * Arg4 = the cache index within the current function
+     */
     CacheNewObject: 15,
+    /**
+     * Arg1 = Arg2 (Register copy)
+     */
     Mov: 16,
+    /**
+     * Arg1 = Arg2 (Register copy, long index)
+     */
     MovLong: 17,
+    /**
+     * Arg1 = -Arg2 (Unary minus)
+     */
     Negate: 18,
+    /**
+     * Arg1 = !Arg2 (Boolean not)
+     */
     Not: 19,
+    /**
+     * Arg1 = ~Arg2 (Bitwise not)
+     */
     BitNot: 20,
+    /**
+     * Arg1 = typeof Arg2 (JS typeof)
+     */
     TypeOf: 21,
+    /**
+     * Arg1 = Arg2 == Arg3 (JS equality)
+     */
     Eq: 22,
+    /**
+     * Arg1 = Arg2 === Arg3 (JS strict equality)
+     */
     StrictEq: 23,
+    /**
+     * Arg1 = Arg2 != Arg3 (JS inequality)
+     */
     Neq: 24,
+    /**
+     * Arg1 = Arg2 !== Arg3 (JS strict inequality)
+     */
     StrictNeq: 25,
+    /**
+     * Arg1 = Arg2 < Arg3 (JS less-than)
+     */
     Less: 26,
+    /**
+     * Arg1 = Arg2 <= Arg3 (JS less-than-or-equals)
+     */
     LessEq: 27,
+    /**
+     * Arg1 = Arg2 > Arg3 (JS greater-than)
+     */
     Greater: 28,
+    /**
+     * Arg1 = Arg2 >= Arg3 (JS greater-than-or-equals)
+     */
     GreaterEq: 29,
+    /**
+     * Arg1 = Arg2 + Arg3 (JS addition/concatenation)
+     */
     Add: 30,
+    /**
+     * Arg1 = Arg2 + Arg3 (Numeric addition, skips number check)
+     */
     AddN: 31,
+    /**
+     * Arg1 = Arg2 + Arg3 (String concat, skips string check)
+     */
     AddS: 32,
+    /**
+     * Arg1 = Arg2 * Arg3 (JS multiplication)
+     */
     Mul: 33,
+    /**
+     * Arg1 = Arg2 * Arg3 (Numeric multiplication, skips number check)
+     */
     MulN: 34,
+    /**
+     * Arg1 = Arg2 / Arg3 (JS division)
+     */
     Div: 35,
+    /**
+     * Arg1 = Arg2 / Arg3 (Numeric division, skips number check)
+     */
     DivN: 36,
+    /**
+     * Arg1 = Arg2 % Arg3 (JS remainder)
+     */
     Mod: 37,
+    /**
+     * Arg1 = Arg2 - Arg3 (JS subtraction)
+     */
     Sub: 38,
+    /**
+     * Arg1 = Arg2 - Arg3 (Numeric subtraction, skips number check)
+     */
     SubN: 39,
+    /**
+     * Arg1 = Arg2 << Arg3 (JS bitshift left)
+     */
     LShift: 40,
+    /**
+     * Arg1 = Arg2 >> Arg3 (JS signed bitshift right)
+     */
     RShift: 41,
+    /**
+     * Arg1 = Arg2 >>> Arg3 (JS unsigned bitshift right)
+     */
     URshift: 42,
+    /**
+     * Arg1 = Arg2 & Arg3 (JS bitwise AND)
+     */
     BitAnd: 43,
+    /**
+     * Arg1 = Arg2 ^ Arg3 (JS bitwise XOR)
+     */
     BitXor: 44,
+    /**
+     * Arg1 = Arg2 | Arg3 (JS bitwise OR)
+     */
     BitOr: 45,
+    /**
+     * Arg1 = Arg2 + 1 (JS increment, skips number check)
+     */
     Inc: 46,
+    /**
+     * Arg1 = Arg2 - 1 (JS decrement, skips number check)
+     */
     Dec: 47,
+    /**
+     * Check whether Arg2 contains Arg3 in its prototype chain.
+     * Note that this is not the same as JS instanceof.
+     * Pseudocode: Arg1 = prototypechain(Arg2).contains(Arg3)
+     */
     InstanceOf: 48,
+    /**
+     * Arg1 = Arg2 in Arg3 (JS relational 'in')
+     */
     IsIn: 49,
+    /**
+     * Arg1 = Arg2 in Arg3 (JS relational 'in' for private names.)
+     * Arg2 must be a symbol.
+     * Arg4 is a private name cache index used to speed up the above operation.
+     * Note that this performs different logic than a normal `in` check. This
+     * instruction does not consult the prototype chain or trigger any proxy
+     * traps. It is a direct check on the own properties of the input object.
+     */
     PrivateIsIn: 50,
+    /**
+     * Arg1 = typeof Arg2 is in Arg3 (TypeOfIsTypes, see Typeof.h)
+     */
     TypeOfIs: 51,
+    /**
+     * Get an environment (scope) from N levels up relative to the current
+     * function's enclosing environment. 0 retrieves the environment from the
+     * closure, 1 retrieves its parent, etc.
+     */
     GetParentEnvironment: 52,
+    /**
+     * Get an environment by traversing the scope chain.
+     * Arg1 is the destination.
+     * Arg2 is the environment from which to start traversing.
+     * Arg3 is the number of levels up the scope chain to go.
+     */
     GetEnvironment: 53,
+    /**
+     * Get the environment from a closure.
+     * Arg1 is the destination.
+     * Arg2 is the closure from which to read.
+     */
     GetClosureEnvironment: 54,
+    /**
+     * Store a value in an environment.
+     * StoreNPToEnvironment[L] store a non-pointer value in an environment
+     * Arg1 is the environment (as fetched by GetEnvironment).
+     * Arg2 is the environment index slot number.
+     * Arg3 is the value.
+     */
     StoreToEnvironment: 55,
     StoreToEnvironmentL: 56,
     StoreNPToEnvironment: 57,
     StoreNPToEnvironmentL: 58,
+    /**
+     * Load a value from an environment.
+     * Arg1 is the destination.
+     * Arg2 is the environment (as fetched by GetEnvironment).
+     * Arg3 is the environment index slot number.
+     */
     LoadFromEnvironment: 59,
     LoadFromEnvironmentL: 60,
+    /**
+     * Get the global object (the object in which global variables are stored).
+     */
     GetGlobalObject: 61,
+    /**
+     * Obtain the value of NewTarget from the frame.
+     * Arg1 = NewTarget
+     */
     GetNewTarget: 62,
+    /**
+     * Get the parent of a given object. The parent will either be an object or null.
+     * Arg1 = destination register to write the parent.
+     * Arg2 = the object.
+     */
     LoadParentNoTraps: 63,
+    /**
+     * Create a new environment, using the current function's enclosing environment
+     * as the parent.
+     * Arg1 is the destination.
+     * Arg2 is the size of the new environment.
+     */
     CreateFunctionEnvironment: 64,
+    /**
+     * Create a top level environment, without a parent.
+     * TODO: Consider removing this in favor of using CreateEnvironment by using a
+     *       different scheme for encoding the top level environment.
+     * Arg1 is the destination.
+     * Arg2 is the size of the new environment.
+     */
     CreateTopLevelEnvironment: 65,
+    /**
+     * Create a new environment with the given parent.
+     * Arg1 is the destination.
+     * Arg2 is the parent environment to use.
+     * Arg3 is the size of the new environment.
+     */
     CreateEnvironment: 66,
+    /**
+     * Declare a global variable by string table index.
+     * The variable will be set to undefined.
+     */
     DeclareGlobalVar: 67,
+    /**
+     * Get an object property by string table index.
+     * Arg1 = Arg2[stringtable[Arg4]]
+     * Arg3 is a cache index used to speed up the above operation.
+     */
     GetByIdShort: 68,
     GetById: 69,
     GetByIdLong: 70,
+    /**
+     * Get an object property by string table index, with a specified receiver.
+     * Arg1 = Arg2[stringtable[Arg5]]
+     * Arg1 is the destination.
+     * Arg2 is the object to begin the property look up.
+     * Arg3 is a cache index used to speed up the above operation.
+     * Arg4 is receiver.
+     * Arg5 is the string id.
+     */
     GetByIdWithReceiverLong: 71,
+    /**
+     * Get an object property by string table index, or throw if not found.
+     * This is similar to GetById, but intended for use with global variables
+     * where Arg2 = GetGlobalObject.
+     */
     TryGetById: 72,
     TryGetByIdLong: 73,
+    /**
+     * Set an object property by string index.
+     * Arg1[stringtable[Arg4]] = Arg2.
+     */
     PutByIdLoose: 74,
     PutByIdStrict: 75,
     PutByIdLooseLong: 76,
     PutByIdStrictLong: 77,
+    /**
+     * Set an object property by string index, or throw if undeclared.
+     * This is similar to PutById, but intended for use with global variables
+     * where Arg1 = GetGlobalObject.
+     */
     TryPutByIdLoose: 78,
     TryPutByIdStrict: 79,
     TryPutByIdLooseLong: 80,
     TryPutByIdStrictLong: 81,
+    /**
+     * Set an existing own property identified at a slot index.
+     * Arg1 is the destination object.
+     * Arg2 is the value to write.
+     * Arg3 is the hidden class slot index.
+     * Arg1[Arg3] = Arg2;
+     */
     PutOwnBySlotIdx: 82,
     PutOwnBySlotIdxLong: 83,
+    /**
+     * Get an existing own property at a given slot index.
+     * Arg1 is the result register.
+     * Arg2 is the object.
+     * Arg3 is the hidden class slot index.
+     * Arg2[Arg3] = Arg2;
+     */
     GetOwnBySlotIdx: 84,
     GetOwnBySlotIdxLong: 85,
+    /**
+     * Define an object own property by string index.
+     * Arg1[stringtable[Arg4]] = Arg2.
+     * Arg3 is a cache index.
+     */
     DefineOwnById: 86,
     DefineOwnByIdLong: 87,
+    /**
+     * Assign a value to a constant integer own property which will be created as
+     * enumerable. This is used (potentially in conjunction with
+     * NewArrayWithBuffer) for arr=[foo,bar] initializations.
+     * Arg1[Arg3] = Arg2;
+     */
     DefineOwnByIndex: 88,
     DefineOwnByIndexL: 89,
+    /**
+     * Define an own property in a dense JavaScript array at a specific index.
+     * Requires that the array is dense and that the ArrayStorage
+     * underlying it has a size which is greater than the arrayIndex operand.
+     * Arg1[Arg3] = Arg2;
+     * Arg1 is the dense array object where the property will be defined.
+     * Arg2 is the value to be stored.
+     * Arg3 is the array index where the property will be stored.
+     * NOTE: The "L" version only goes up to 16-bit array indices,
+     * because NewArray only takes UInt16 argument.
+     */
     DefineOwnInDenseArray: 90,
     DefineOwnInDenseArrayL: 91,
+    /**
+     * Set an own property identified by value.
+     * Arg1 is the destination object.
+     * Arg2 is the value to write.
+     * Arg3 is the property name.
+     * Arg4 : bool -> enumerable. If true, the property is created as enumerable,
+     *        non-enumerable otherwise.
+     * Arg1[Arg3] = Arg2;
+     */
     DefineOwnByVal: 92,
+    /**
+     * Get a property by value. Constants string values should instead use GetById.
+     * Arg1 = Arg2[Arg3]
+     */
     GetByVal: 93,
+    /**
+     * Get a property by value, for the special case where the property is a
+     * numeric literal that is a uint8_t integer. Arg1 = Arg2[Arg3]
+     */
     GetByIndex: 94,
+    /**
+     * Get a property by value with a specified receiver.
+     * Arg1 = Arg2[Arg3]
+     * Arg1 is the destination register.
+     * Arg2 is the object to begin the property look up. It must be an object.
+     * Arg3 is the property key.
+     * Arg4 is the receiver.
+     */
     GetByValWithReceiver: 95,
+    /**
+     * Set a property by value. Constant string values should instead use GetById
+     * (unless they are array indices according to ES5.1 section 15.4, in which
+     * case this is still the right opcode).
+     * Arg1[Arg2] = Arg3
+     */
     PutByValLoose: 96,
     PutByValStrict: 97,
+    /**
+     * Set a property by value, with a specified receiver.
+     * Arg1[Arg2] = Arg3
+     * Arg4 is the receiver
+     * Arg5 is true if this operation is strict, false for loose.
+     */
     PutByValWithReceiver: 98,
+    /**
+     * Delete a property by value (when the value is not known at compile time).
+     * Arg1 = delete Arg2[Arg3]
+     * Arg4 : Integer value set to 1 for strict mode semantics, 0 for loose.
+     */
     DelByVal: 99,
+    /**
+     * Add a private property to an object. This must be a new property.
+     * The property will be added with the privateName flag set on the PropertyFlags.
+     * Arg1[Arg2] = Arg3
+     */
     AddOwnPrivateBySym: 100,
+    /**
+     * Get a private property from an object.
+     * Arg1 = Arg2[Arg5]
+     * Arg1 is the result
+     * Arg2 is the object to read from.
+     * Arg3 is a private name cache index used to speed up the above operation.
+     * Arg4 is the symbol value of the private name.
+     */
     GetOwnPrivateBySym: 101,
+    /**
+     * Store a private property to an object.
+     * Arg1[Arg5] = Arg2
+     * Arg1 is the object to store to.
+     * Arg2 is the value to store.
+     * Arg3 is a private name cache index used to speed up the above operation.
+     * Arg4 is the symbol value of the private name.
+     */
     PutOwnPrivateBySym: 102,
+    /**
+     * Add a getter and a setter for a property by value.
+     * Object.defineProperty(Arg1, Arg2, { get: Arg3, set: Arg4 }).
+     * Arg1 is the target object which will have a property defined.
+     * Arg2 is the property name
+     * Arg3 is the getter closure or undefined
+     * Arg4 is the setter closure or undefined
+     * Arg5 : boolean - if true, the property will be enumerable.
+     */
     DefineOwnGetterSetterByVal: 103,
+    /**
+     * Get the list of properties from an object to implement for..in loop.
+     * Returns Arg1, which is the register that holds array of properties.
+     * Returns Undefined if the object is null/undefined.
+     * Arg2 is the register that holds the object.
+     * Arg3 is the register that holds the iterating index.
+     * Arg4 is the register that holds the size of the property list.
+     */
     GetPNameList: 104,
+    /**
+     * Get the next property in the for..in iterator.
+     * Returns Arg1, which is the next property. Undefined if unavailable.
+     * Arg2 is the register that holds array of properties.
+     * Arg3 is the register that holds the object.
+     * Arg4 is the register that holds the iterating index.
+     * Arg5 is the register that holds the size of the property list.
+     */
     GetNextPName: 105,
+    /**
+     * Call a function.
+     * Arg1 is the destination of the return value.
+     * Arg2 is the closure to invoke.
+     * Arg3 is the number of arguments, assumed to be found in reverse order
+     *      from the end of the current frame.
+     */
     Call: 106,
+    /**
+     * Call a constructor, with semantics identical to Call.
+     * Arg1 is the destination of the return value.
+     * Arg2 is the closure to invoke.
+     * Arg3 is the number of arguments, assumed to be found in reverse order
+     *      from the end of the current frame. The first argument 'this'
+     *      is assumed to be created with CreateThis.
+     */
     Construct: 107,
+    /**
+     * Call a function with one arg.
+     * Arg1 is the destination of the return value.
+     * Arg2 is the closure to invoke.
+     * Arg3 is the first argument.
+     */
     Call1: 108,
+    /**
+     * Call a function with an explicitly specified `new.target`.
+     * Arg1 is the destination of the return value.
+     * Arg2 is the closure to invoke.
+     * Arg3 is the value of new.target
+     * Arg4 is the number of arguments, assumed to be found in reverse order
+     *      from the end of the current frame.
+     */
     CallWithNewTarget: 109,
+    /**
+     * Call a function with two args.
+     * Arg1 is the destination of the return value.
+     * Arg2 is the closure to invoke.
+     * Arg3 is the first argument.
+     * Arg4 is the second argument.
+     */
     Call2: 110,
+    /**
+     * Call a function with three args.
+     * Arg1 is the destination of the return value.
+     * Arg2 is the closure to invoke.
+     * Arg3 is the first argument.
+     * Arg4 is the second argument.
+     * Arg5 is the third argument.
+     */
     Call3: 111,
+    /**
+     * Call a function with four args.
+     * Arg1 is the destination of the return value.
+     * Arg2 is the closure to invoke.
+     * Arg3 is the first argument.
+     * Arg4 is the second argument.
+     * Arg5 is the third argument.
+     * Arg6 is the fourth argument.
+     */
     Call4: 112,
+    /**
+     * Identical to CallWithNewTarget, but allowing more arguments.
+     * arg4 is a register containing a number, instead of a literal number.
+     * This is done to decrease the size of this opcode.
+     */
     CallWithNewTargetLong: 113,
+    /**
+     * A Metro require call.
+     * Arg1 is the destination of the return value.
+     * Arg2 is the closure to invoke.
+     * Arg3 is the module index argument, as an immediate.
+     */
     CallRequire: 114,
+    /**
+     * Call a builtin function.
+     * Note this is NOT marked as a Ret target, because the callee is native
+     * and therefore never JS.
+     * Arg1 is the destination of the return value.
+     * Arg2 is the builtin number.
+     * Arg3 is the number of arguments, assumed to be found in reverse order
+     *      from the end of the current frame.
+     * thisArg is set to "undefined".
+     */
     CallBuiltin: 115,
+    /**
+     * Call a builtin function.
+     * Note this is NOT marked as a Ret target, because the callee is native
+     * and therefore never JS.
+     * Arg1 is the destination of the return value.
+     * Arg2 is the builtin number.
+     * Arg3 is the number of arguments, assumed to be found in reverse order
+     *      from the end of the current frame.
+     * thisArg is set to "undefined".
+     */
     CallBuiltinLong: 116,
+    /**
+     * Get a closure from a builtin function.
+     * Arg1 is the destination of the return value.
+     * Arg2 is the builtin number.
+     */
     GetBuiltinClosure: 117,
+    /**
+     * Return a value from the current function.
+     * return Arg1;
+     */
     Ret: 118,
+    /**
+     * Catch an exception (the first instruction in an exception handler).
+     * } catch(Arg1) {
+     */
     Catch: 119,
+    /**
+     * ES6 18.2.1.1 PerformEval(Arg2, evalRealm, strictCaller=true, direct=true)
+     * Arg1 is the destination of the return value.
+     * Arg2 is the eval text
+     * Arg3 is a bool indicating strictCaller
+     */
     DirectEval: 120,
+    /**
+     * Throw an exception.
+     * throw Arg1;
+     */
     Throw: 121,
+    /**
+     * If Arg2 is Empty, throw ReferenceError, otherwise move it into Arg1.
+     * Arg1 is the destination of the return value
+     * Arg2 is the value to check
+     */
     ThrowIfEmpty: 122,
+    /**
+     * If Arg2 is Undefined, throw ReferenceError, otherwise move it into Arg1.
+     * Arg1 is the destination of the return value
+     * Arg2 is the value to check
+     */
     ThrowIfUndefined: 123,
+    /**
+     * If Arg1 is not Empty, throw ReferenceError.
+     * Arg1 is the checked this of a derived constructor.
+     */
     ThrowIfThisInitialized: 124,
+    /**
+     * Implementation dependent debugger action.
+     */
     Debugger: 125,
+    /**
+     * Fast check for an async interrupt request.
+     */
     AsyncBreakCheck: 126,
+    /**
+     * Define a profile point.
+     * Arg1 is the function local profile point index. The first one will have the
+     * largest index. If there are more than 2^16 profile points in the function,
+     * all the overflowed profile points have index zero.
+     */
     ProfilePoint: 127,
+    /**
+     * Create a base class.
+     * Arg1 is the output register for the the closure.
+     * Arg2 is the output register for the home object.
+     * Arg3 is the current environment.
+     * Arg4 is index in the function table.
+     */
     CreateBaseClass: 128,
     CreateBaseClassLongIndex: 129,
+    /**
+     * Create a derived class.
+     * Arg1 is the output register for the the closure.
+     * Arg2 is the output register for the home object.
+     * Arg3 is the current environment.
+     * Arg4 is the superClass.
+     * Arg5 is index in the function table.
+     */
     CreateDerivedClass: 130,
     CreateDerivedClassLongIndex: 131,
+    /**
+     * Create a closure.
+     * Arg1 is the register in which to store the closure.
+     * Arg2 is the parent environment of the closure, or undefined.
+     * Arg3 is index in the function table.
+     */
     CreateClosure: 132,
     CreateClosureLongIndex: 133,
+    /**
+     * Allocate an empty, uninitialized object to be used as the `this` parameter
+     * in a `new` expression. Some closures are responsible for making their own
+     * `this`, so in these cases this instruction will simply return undefined.
+     * Arg1 is the destination register.
+     * Arg2 is the constructor closure that will be invoked.
+     * Arg3 is a cache index used to speed up fetching the new target prototype
+     * property.
+     */
     CreateThisForNew: 134,
+    /**
+     * Allocate an empty, uninitialized object to be used as the `this` parameter
+     * in a `new` expression.
+     * Arg1 is the destination register.
+     * Arg2 is the constructor closure that will be invoked.
+     * Arg3 is the new.target.
+     * Arg4 is a cache index used to speed up fetching the new target prototype property.
+     */
     CreateThisForSuper: 135,
+    /**
+     * Choose the result of a constructor: 'this' or a returned object.
+     * Arg1 is the result.
+     * Arg2 is the 'this' object used for the constructor.
+     * Arg3 is the constructor's return value.
+     * Arg1 = Arg3 instanceof Object ? Arg3 : Arg2
+     */
     SelectObject: 136,
+    /**
+     * Load a function parameter by index. Starts at 0 with 'this'.
+     * Arg1 = Arg2 == 0 ? this : arguments[Arg2 - 1];
+     */
     LoadParam: 137,
+    /**
+     * Like LoadParam, but allows accessing arguments >= 255.
+     */
     LoadParamLong: 138,
+    /**
+     * Load a constant integer value.
+     */
     LoadConstUInt8: 139,
     LoadConstInt: 140,
+    /**
+     * Load a constant double value.
+     */
     LoadConstDouble: 141,
+    /**
+     * Load a constant BigInt value by bigint table index.
+     */
     LoadConstBigInt: 142,
     LoadConstBigIntLongIndex: 143,
+    /**
+     * Load a constant string value by string table index.
+     */
     LoadConstString: 144,
     LoadConstStringLongIndex: 145,
+    /**
+     * Load common constants.
+     */
     LoadConstEmpty: 146,
     LoadConstUndefined: 147,
     LoadConstNull: 148,
     LoadConstTrue: 149,
     LoadConstFalse: 150,
     LoadConstZero: 151,
+    /**
+     * Coerce a value assumed to contain 'this' to an object using non-strict
+     * mode rules. Primitives are boxed, \c null or \c undefed produce the global
+     * object.
+     * Arg1 = coerce_to_object(Arg2)
+     */
     CoerceThisNS: 152,
+    /**
+     * Obtain the raw \c this value and coerce it to an object. Equivalent to:
+     * \code
+     *     LoadParam    Arg1, #0
+     *     CoerceThisNS Arg1, Arg1
+     * \endcode
+     */
     LoadThisNS: 153,
+    /**
+     * Convert a value to a number.
+     * Arg1 = Arg2 - 0
+     */
     ToNumber: 154,
+    /**
+     * Convert a value to a numberic.
+     * Arg1 = ToNumeric(Arg2)
+     */
     ToNumeric: 155,
+    /**
+     * Convert a value to a 32-bit signed integer.
+     * Arg1 = Arg2 | 0
+     */
     ToInt32: 156,
+    /**
+     * Convert a value to a string as if evaluating the expression:
+     *     Arg1 = "" + Arg2
+     * In practice this means
+     *     Arg1 = ToString(ToPrimitive(Arg2, PreferredType::NONE))
+     * with ToPrimitive (ES5.1 9.1) and ToString (ES5.1 9.8).
+     */
     AddEmptyString: 157,
+    /**
+     * Create a new primitive symbol, taking in a string description as input.
+     * This is almost equivalent to the following JS, with the important distinction
+     * an object is not computed- just the raw SymbolID.
+     *   Arg1 is the result.
+     *   Arg2 is the string id for the symbol description.
+     *   Arg1 = new Symbol(Arg2)
+     */
     CreatePrivateName: 158,
+    /**
+     * Get a property of the 'arguments' array by value.
+     * Arg1 is the result.
+     * Arg2 is the index.
+     * Arg3 is the lazy loaded register.
+     * Arg1 = arguments[Arg2]
+     */
     GetArgumentsPropByValLoose: 159,
     GetArgumentsPropByValStrict: 160,
+    /**
+     * Get the length of the 'arguments' array.
+     * Arg1 is the result.
+     * Arg2 is the lazy loaded register.
+     * Arg1 = arguments.length
+     */
     GetArgumentsLength: 161,
+    /**
+     * Create an actual 'arguments' array, if get-by-index and length isn't enough.
+     * Arg1 is the lazy loaded register, which afterwards will contain a proper
+     *      object that can be used by non-*Arguments* opcodes like Return.
+     */
     ReifyArgumentsStrict: 162,
     ReifyArgumentsLoose: 163,
+    /**
+     * Convert a value to a property key, used to evaluate a ComputedPropertyName.
+     * Arg1 = ToPropertyKey(Arg2)
+     */
     ToPropertyKey: 164,
+    /**
+     * Create a regular expression.
+     * Arg1 is the result.
+     * Arg2 is the string index of the pattern.
+     * Arg3 is the string index of the flags.
+     * Arg4 is the regexp bytecode index in the regexp table.
+     */
     CreateRegExp: 165,
+    /**
+     * Jump table switch - using a table of offset, jump to the offset of the given
+     * input or to the default block if out of range (or not right type)
+     * Arg 1 is the value to be branched upon
+     * Arg 2 is the relative offset of the jump table to be used by this
+     *   instruction. Jump tables are appended to the bytecode.
+     * Arg 3 is the relative offset for the "default" jump.
+     * Arg 4 is the unsigned min value, if arg 1 is/ less than this value jmp to
+     *   default block
+     * Arg 5 is the unsigned max value, if arg 1 is greater than this value jmp to
+     *   default block.
+     * Given the above, the jump table entry for a given value (that is in range)
+     * is located at offset ip + arg2 + arg1 - arg4. We subtract arg4 to avoid
+     * wasting space when compiling denses switches that do not start at zero. Note
+     * that Arg2 is *unaligned* it is dynamically aligned at runtime.
+     */
     UIntSwitchImm: 166,
+    /**
+     * All-string switch (switch all of whose case labels are string literals).
+     * Arg 1 is the value to be branched upon
+     * Arg 2 is a global index for this StringSwitchImm instruction in the
+     * bytecode file.
+     * Arg 3 is the relative offset of the string switch table.  A string switch
+     *   table is a sequence of pairs:
+     *   <UInt32 string table index, UInt32 jump targets>
+     * Arg 4 is the relative offset for the "default" jump.
+     * Arg 5 is the size of the string switch table.
+     * Given the above, the jump table entry for a given value (that is in range)
+     * is located at offset ip + arg3.  Note that Arg3 is *unaligned*; it is
+     * dynamically aligned at runtime.
+     */
     StringSwitchImm: 167,
+    /**
+     * Create a generator.
+     * Arg1 is the register in which to store the generator.
+     * Arg2 is the parent environment of the generator, or undefined.
+     * Arg3 is index in the function table.
+     */
     CreateGenerator: 168,
     CreateGeneratorLongIndex: 169,
+    /**
+     * Arg1 [out] is the result iterator or index.
+     * Arg2 [in/out] is the source. Output for either the source or next method.
+     * If source is an array with an unmodified [Symbol.iterator], the result is
+     * 0. Else the result is source[Symbol.iterator] and the output is the .next()
+     * method on the iterator.
+     * See IR.md for IteratorBeginInst.
+     */
     IteratorBegin: 170,
+    /**
+     * Arg1 [out] is the result, or undefined if done.
+     * Arg2 [in/out] is the iterator or index.
+     * Arg2 [in] is the source or the next method.
+     * If iterator is undefined, result = undefined.
+     * If iterator is a number:
+     *   If iterator is less than source.length, return source[iterator++]
+     *   Else iterator = undefined and result = undefined
+     * Else:
+     *   n = iterator.next()
+     *   If n.done, iterator = undefined and result = undefined.
+     *   Else result = n.value
+     * See IR.md for IteratorNextInst.
+     */
     IteratorNext: 171,
+    /**
+     * Arg1 [in] is the iterator or array index.
+     * Arg2 is a bool indicating whether to ignore the inner exception.
+     * If the iterator is an object, call iterator.return().
+     * If Arg2 is true, ignore exceptions which are thrown by iterator.return().
+     * See IR.md for IteratorCloseInst.
+     */
     IteratorClose: 172,
+    /**
+     * Arg1 [out] is the result.
+     * Arg2 [in] is the source (must be an object).
+     */
     TypedLoadParent: 173,
+    /**
+     * Unconditional branch to Arg1.
+     */
     Jmp: 174,
+    /**
+     * Unconditional branch to Arg1.
+     */
     JmpLong: 175,
+    /**
+     * Conditional branches to Arg1 based on Arg2.
+     */
     JmpTrue: 176,
+    /**
+     * Conditional branches to Arg1 based on Arg2.
+     */
     JmpTrueLong: 177,
     JmpFalse: 178,
     JmpFalseLong: 179,
+    /**
+     * Jump if the value is undefined.
+     */
     JmpUndefined: 180,
+    /**
+     * Jump if the value is undefined.
+     */
     JmpUndefinedLong: 181,
+    /**
+     * Jump if the type matches the TypeOfIsTypes in Arg3.
+     * Arg1 is the target.
+     * Arg2 is the value to test.
+     * Arg3 is the TypeOfIsTypes (see Typeof.h).
+     */
     JmpTypeOfIs: 182,
+    /**
+     * Not conditionals are required for NaN comparisons
+     * Since we want to be able to reorder targets to allow for fall-throughs,
+     * we need to be able to say "jump when not less than to BB2" instead of
+     * "jump when less than to BB1".
+     * Since NaN comparisons always return false, "not less" != "greater or equal"
+     */
     JLess: 183,
+    /**
+     * Not conditionals are required for NaN comparisons
+     * Since we want to be able to reorder targets to allow for fall-throughs,
+     * we need to be able to say "jump when not less than to BB2" instead of
+     * "jump when less than to BB1".
+     * Since NaN comparisons always return false, "not less" != "greater or equal"
+     */
     JLessLong: 184,
     JNotLess: 185,
     JNotLessLong: 186,
