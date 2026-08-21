@@ -1,7 +1,7 @@
 import { Instruction } from "./instruction.ts";
 import type { HermesModule } from "./module.ts";
 import type { MutableFunction } from "./mutable.ts";
-import { ArgType, Opcode, opcodeNames, opcodeTypes } from "./opcodes.ts";
+import { ArgType, opcodeNames, opcodeTypes } from "./opcodes.ts";
 import { Rope } from "./rope.ts";
 
 interface BytecodeInfo {
@@ -67,11 +67,9 @@ export class Disassembler {
                     src += `  ${text}\n`;
                 }
             } else {
-
                 for (const { text } of this.disassembleBytes(leaf, BOLD)) {
                     src += diff < 0 ? this.color`${DIFF_DEL}- ${text}\n` : `${DIFF_INS}+ ${text}\n`;
                 }
-
             }
         }
 

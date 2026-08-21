@@ -131,9 +131,9 @@ function getJsdoc(opcode: string) {
     const doc = opcodeDocs[opcode];
     if (!doc) return "";
 
-    return "    /**" +
-        doc.trimEnd().replace(/^|\n/g, "\n     * ") +
-        "\n     */\n";
+    return "    /**"
+        + doc.trimEnd().replace(/^|\n/g, "\n     * ")
+        + "\n     */\n";
 }
 
 function parseBytecode(listing: string) {

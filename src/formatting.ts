@@ -30,7 +30,7 @@ const GutterTileType = new class {
     Y = this.TOP | this.BOTTOM;
     CORNER_TOP = this.BOTTOM | this.RIGHT;
     CORNER_BOTTOM = this.TOP | this.RIGHT;
-}
+}();
 
 const SPRITES = [
     [" ", "╵", "╶", "└"],
