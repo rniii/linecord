@@ -4,9 +4,14 @@ import { canonicalOpcodes, type FunctionOperands, functionOperands, Opcode, type
 import type { ParsedArguments, RawArguments, RawInstruction } from "decompiler/types";
 
 export interface PatchFingerprint {
+    /** The exact name of this function. */
     identifier?: string;
+    /** Strings this function references. Matched partially. */
     strings?: string[];
+    /** Opcodes this function uses. */
     opcodes?: Opcode[];
+    /** Keys in NewObjectWithBuffer instructions. */
+    objectKeys?: string[];
 }
 
 export type PatchAction =

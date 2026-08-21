@@ -8,7 +8,8 @@ export default definePlugin({
 
     patches: [
         {
-            strings: ["Object", "defineProperties", "isDeveloper"],
+            strings: ["Object", "defineProperties"],
+            objectKeys: ["isDeveloper"],
             patches: {
                 identifier: "get",
                 replace: [

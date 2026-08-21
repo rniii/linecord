@@ -1,4 +1,4 @@
-import { type HermesModule, Instruction, parseLiterals } from "decompiler";
+import { type HermesModule, Instruction, parseArrayValues, parseObjectKeys, parseObjectValues } from "decompiler";
 import { ArgType, Builtin, builtinNames, Opcode, opcodeNames, opcodeTypes } from "decompiler/opcodes";
 import type { Literal, ModuleFunction } from "decompiler/types";
 
@@ -85,33 +85,26 @@ function disassembleInstruction(module: HermesModule, func: ModuleFunction, inst
     switch (instr.opcode) {
         case Opcode.NewArrayWithBuffer:
         case Opcode.NewArrayWithBufferLong: {
-            const [,, count, valIdx] = instr.operands();
+            const values = parseArrayValues(module, instr.getOperand(2), instr.getOperand(3));
 
-            const items = parseLiterals(module.literalValueBuffer, valIdx, count, module.strings);
-
-            notes.push(`[${items.map(v => JSON.stringify(v)).join(", ")}]`);
+            notes.push(`[${values.map(v => JSON.stringify(v)).join(", ")}]`);
             break;
         }
         case Opcode.NewObjectWithBuffer:
         case Opcode.NewObjectWithBufferLong:
         case Opcode.NewObjectWithBufferAndParent: {
-            const operands = instr.operands();
-            if (instr.opcode === Opcode.NewObjectWithBufferAndParent) operands.next();
+            const [, shapeIdx, valIdx] = instr.operands().drop(
+                instr.opcode === Opcode.NewObjectWithBufferAndParent ? 2 : 1,
+            );
 
-            const [, shapeIdx, valIdx] = operands;
-
-            const { keyBufferOffset, numProps } = module.objectShapes[shapeIdx];
-            const keys = parseLiterals(module.objectKeyBuffer, keyBufferOffset, numProps, module.strings);
-            const values = parseLiterals(module.literalValueBuffer, valIdx, numProps, module.strings);
+            const keys = parseObjectKeys(module, shapeIdx);
+            const values = parseObjectValues(module, shapeIdx, valIdx);
 
             notes.push(`{ ${keys.map((k, i) => `${formatKey(k)}: ${JSON.stringify(values[i])}`).join(", ")} }`);
             break;
         }
         case Opcode.CacheNewObject: {
-            const [,, shapeIdx] = instr.operands();
-
-            const { keyBufferOffset, numProps } = module.objectShapes[shapeIdx];
-            const keys = parseLiterals(module.objectKeyBuffer, keyBufferOffset, numProps, module.strings);
+            const keys = parseObjectKeys(module, instr.getOperand(2));
 
             notes.push(`{ ${keys.map(k => formatKey(k)).join(", ")} }`);
             break;

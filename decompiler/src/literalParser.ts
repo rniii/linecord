@@ -1,4 +1,4 @@
-import type { StringTable } from "./module.ts";
+import type { HermesModule, StringTable } from "./module.ts";
 
 export type Literal = number | string | boolean | null | undefined;
 
@@ -17,6 +17,28 @@ type TagType = typeof TagType[keyof typeof TagType];
 
 // XXX: ideally all literals should be parsed ahead of time, but it doesn't seem to be trivial
 // (trying to read everything in `module.arrayBuffer` fails after 3 tags)
+
+export function parseArrayValues(module: HermesModule, offset: number, count: number) {
+    return parseLiterals(module.literalValueBuffer, offset, count, module.strings);
+}
+
+export function parseObjectKeys(module: HermesModule, shapeIdx: number) {
+    return parseLiterals(
+        module.objectKeyBuffer,
+        module.objectShapes[shapeIdx].keyBufferOffset,
+        module.objectShapes[shapeIdx].numProps,
+        module.strings,
+    );
+}
+
+export function parseObjectValues(module: HermesModule, shapeIdx: number, valIdx: number) {
+    return parseLiterals(
+        module.literalValueBuffer,
+        valIdx,
+        module.objectShapes[shapeIdx].numProps,
+        module.strings,
+    );
+}
 
 export function parseLiterals(buffer: Uint8Array, offset: number, count: number, strings: StringTable) {
     const literals: Literal[] = [];

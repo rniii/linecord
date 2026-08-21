@@ -1,6 +1,6 @@
-import { Disassembler, encodeInstructions, HermesModule, Instruction, parseHermesModule, writeHermesModule } from "decompiler";
+import { Disassembler, encodeInstructions, HermesModule, Instruction, parseHermesModule, parseObjectKeys, writeHermesModule } from "decompiler";
 import { ModulePatcher } from "decompiler/mutable";
-import type { Opcode } from "decompiler/opcodes";
+import { Opcode } from "decompiler/opcodes";
 import type { ModuleFunction } from "decompiler/types";
 import { writeFile } from "fs/promises";
 
@@ -78,22 +78,19 @@ function patchModule(module: HermesModule) {
     }
 
     function compilePatches(patches: PatchDef[]): CompiledPatch[] {
+        const getStr = (str: string) => patcher.findString(str)?.index;
+        const getPartialStr = (str: string) => patcher.findPartialString(str)?.index;
+
         return patches.map(def => {
             let identifierId;
             let stringIds;
 
             if (def.identifier != null) {
-                identifierId = patcher.findString(def.identifier)?.index;
-                if (!identifierId) throw Error(f`Couldn't find identifier ${def.identifier}`);
+                identifierId = assert(getStr(def.identifier), `Couldn't find identifier ${def.identifier}`);
             }
 
             if (def.strings != null) {
-                stringIds = def.strings.map(str => {
-                    const id = patcher.findPartialString(str)?.index;
-                    if (!id) throw Error(f`Couldn't find string ${str}`);
-
-                    return id;
-                });
+                stringIds = def.strings.map(str => assert(getPartialStr(str), f`Couldn't find string ${str}`));
             }
 
             return { ...def, identifierId, stringIds };
@@ -108,6 +105,7 @@ function patchModule(module: HermesModule) {
 
             for (const patch of patches) {
                 if (!matchFingerprint(fp, patch)) continue;
+                if (!matchExtraFingerprint(func, patch)) continue;
 
                 if (patch.matchedId != null) {
                     console.warn("Patch is not unique", patch);
@@ -132,6 +130,29 @@ function patchModule(module: HermesModule) {
         return true;
     }
 
+    function matchExtraFingerprint(func: ModuleFunction, patch: CompiledPatch) {
+        if (patch.objectKeys) {
+            const unseen = new Set(patch.objectKeys);
+
+            for (const instr of Instruction.iterate(func.bytecode.opcodes)) {
+                if (
+                    instr.opcode === Opcode.NewObjectWithBuffer
+                    || instr.opcode === Opcode.NewObjectWithBufferLong
+                ) {
+                    const shapeIdx = instr.getOperand(1);
+
+                    for (const key of parseObjectKeys(module, shapeIdx)) {
+                        unseen.delete(key as any);
+                    }
+                }
+            }
+
+            if (unseen.size) return false;
+        }
+
+        return true;
+    }
+
     function fingerprintFunction(func: ModuleFunction) {
         const identifierId = func.header.functionName;
         const opcodes = new Set<Opcode>();
@@ -146,6 +167,11 @@ function patchModule(module: HermesModule) {
 
         return { identifierId, opcodes, stringIds, closureIds };
     }
+}
+
+function assert<T>(value: T | undefined, err: string): T {
+    if (!value) throw Error(err);
+    return value;
 }
 
 function f(args: TemplateStringsArray, ...values: any[]) {
