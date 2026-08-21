@@ -1,6 +1,6 @@
 import type { PatchDef } from "./patches.ts";
 
-type Author = "rini";
+type Author = keyof Developer;
 
 export interface PluginDef {
     name: string;
@@ -11,3 +11,17 @@ export interface PluginDef {
 export function definePlugin(plugin: PluginDef) {
     return plugin;
 }
+
+interface Developer {
+    name: string;
+    github: string;
+    githubId: number;
+}
+
+export const Devs = {
+    "rini": {
+        name: "rini",
+        github: "rniii",
+        githubId: 142252300,
+    },
+} satisfies Record<string, Developer>;
