@@ -93,10 +93,7 @@ export const exceptionHandlerInfo = new Bitfield({
 export type ExceptionHandlerInfo = ParsedBitfield<typeof exceptionHandlerInfo>;
 
 export const debugOffsets = new Bitfield({
-    filenameCount: 32,
-    filenameStorageSize: 32,
-    fileRegionCount: 32,
-    debugDataSize: 32,
+    sourceLocations: 32,
 });
 
 export type DebugOffsets = ParsedBitfield<typeof debugOffsets>;

@@ -196,7 +196,6 @@ function parseFunctions(
         if (header.overflowed) {
             const offset = getLargeOffset(header);
             header = largeFunctionHeader.parse(view, offset);
-            header.overflowed = 1;
 
             if (!bytecodeEnd) bytecodeEnd = offset; // overflowed headers start after bytecode
         }
@@ -211,15 +210,16 @@ function parseFunctions(
     const bytecodeIndex: number[] = [];
 
     for (const header of functionHeaders) {
-        const idx = bisect(bytecodeOffsets, header.offset);
+        let idx = bisect(bytecodeOffsets, header.offset);
 
         if (bytecodeOffsets[idx] !== header.offset) {
             bytecodeOffsets.splice(idx, 0, header.offset);
             bytecodeLengths.splice(idx, 0, header.bytecodeSizeInBytes);
         } else if (bytecodeLengths[idx] !== header.bytecodeSizeInBytes) {
             if (bytecodeLengths[idx] === 0) {
-                bytecodeOffsets.splice(idx + 1, 0, header.offset);
-                bytecodeLengths.splice(idx + 1, 0, header.bytecodeSizeInBytes);
+                idx++;
+                bytecodeOffsets.splice(idx, 0, header.offset);
+                bytecodeLengths.splice(idx, 0, header.bytecodeSizeInBytes);
             } else {
                 throw Error("what?");
             }

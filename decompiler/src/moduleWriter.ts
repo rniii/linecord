@@ -67,20 +67,22 @@ export function writeHermesModule(module: HermesModule) {
 
     offset = padSize(offset);
 
-    const smallHeaders: FunctionHeader[] = [];
+    const smallHeaders: FunctionHeader[] = module.functions.map((func, i) => {
+        const small = getSmallHeader(funcHeaders[i], offset);
 
-    for (const [i, func] of module.functions.entries()) {
-        const header = funcHeaders[i];
+        if (small.overflowed) {
+            offset += largeFunctionHeader.byteSize;
+            if (func.exceptionTable) {
+                offset += 4;
+                offset += func.exceptionTable.length * exceptionHandlerInfo.byteSize;
+            }
+            if (func.debugOffsets) {
+                offset += debugOffsets.byteSize;
+            }
+        }
 
-        const small = getSmallHeader(header, offset);
-        smallHeaders.push(small);
-
-        if (!small.overflowed) continue;
-
-        offset += largeFunctionHeader.byteSize;
-        if (func.exceptionTable) offset += 4 + func.exceptionTable.length * exceptionHandlerInfo.byteSize;
-        if (func.debugOffsets) offset += debugOffsets.byteSize;
-    }
+        return small;
+    });
 
     if (module.debugInfo) {
         header.debugInfoOffset = offset;
@@ -111,37 +113,34 @@ export function writeHermesModule(module: HermesModule) {
 
     smallFunctionHeader.writeItems(view, segments.functionHeaders[0], smallHeaders);
     stringKind.writeItems(view, segments.stringKinds[0], module.strings.kinds);
+    data.set(module.identifierHashes, segments.identifierHashes[0]);
     stringTableEntry.writeItems(view, segments.stringTable[0], module.strings.entries);
     offsetLengthPair.writeItems(view, segments.overflowStringTable[0], module.strings.overflowEntries);
+    data.set(module.strings.storage, segments.stringStorage[0]);
+    data.set(module.literalValueBuffer, segments.literalValueBuffer[0]);
+    data.set(module.objectKeyBuffer, segments.objectKeyBuffer[0]);
+    data.set(module.objects.storage, segments.objectShapeTable[0]);
     offsetLengthPair.writeItems(view, segments.bigIntTable[0], module.bigInts.entries);
+    data.set(module.bigInts.storage, segments.bigIntStorage[0]);
     offsetLengthPair.writeItems(view, segments.regExpTable[0], module.regExps.entries);
-    offsetLengthPair.writeItems(view, segments.objectShapeTable[0], module.objects.entries);
-
-    for (
-        const [segment, [offset]] of [
-            [module.identifierHashes, segments.identifierHashes],
-            [module.strings.storage, segments.stringStorage],
-            [module.objectKeyBuffer, segments.objectKeyBuffer], // TODO
-            [module.bigInts.storage, segments.bigIntStorage],
-            [module.regExps.storage, segments.regExpStorage],
-            [module.cjsModuleTable, segments.cjsModuleTable],
-            [module.functionSourceTable, segments.functionSourceTable],
-        ]
-    ) {
-        data.set(segment, offset);
-    }
+    data.set(module.regExps.storage, segments.regExpStorage[0]);
+    data.set(module.cjsModuleTable, segments.cjsModuleTable[0]);
+    data.set(module.functionSourceTable, segments.functionSourceTable[0]);
 
     offset = segments.bytecodeAndFunctionInfo[0];
 
-    for (let [bytecode, offset] of bcMap) {
+    for (const bytecode of module.bytecode) {
         data.set(bytecode.opcodes, offset);
         offset += bytecode.opcodes.byteLength;
 
         if (bytecode.jumpTables) {
             offset = padSize(offset);
             data.set(bytecode.jumpTables, offset);
+            offset += bytecode.jumpTables.byteLength;
         }
     }
+
+    offset = padSize(offset);
 
     for (const [i, func] of module.functions.entries()) {
         const header = funcHeaders[i];
@@ -149,18 +148,18 @@ export function writeHermesModule(module: HermesModule) {
 
         if (smallHeader.overflowed) {
             largeFunctionHeader.write(view, offset, header);
-
             offset += largeFunctionHeader.byteSize;
-        }
-        if (func.exceptionTable) {
-            view.setUint32(offset, func.exceptionTable.length, true);
-            offset += 4;
-            exceptionHandlerInfo.writeItems(view, offset, func.exceptionTable);
-            offset += exceptionHandlerInfo.byteSize * func.exceptionTable.length;
-        }
-        if (func.debugOffsets) {
-            debugOffsets.write(view, offset, func.debugOffsets);
-            offset += debugOffsets.byteSize;
+
+            if (func.exceptionTable) {
+                view.setUint32(offset, func.exceptionTable.length, true);
+                offset += 4;
+                exceptionHandlerInfo.writeItems(view, offset, func.exceptionTable);
+                offset += exceptionHandlerInfo.byteSize * func.exceptionTable.length;
+            }
+            if (func.debugOffsets) {
+                debugOffsets.write(view, offset, func.debugOffsets);
+                offset += debugOffsets.byteSize;
+            }
         }
     }
 
