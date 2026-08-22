@@ -12,11 +12,19 @@ import experiments from "./plugins/experiments/index.ts";
 const plugins = [experiments];
 
 for (const bundle of ["discord/android.hbc", "discord/apple.hbc"]) {
+    let buffer;
+
+    try {
+        buffer = (await readFile(bundle)).buffer;
+    } catch {
+        continue;
+    }
+
     const output = bundle.replace(/\.hbc$/, ".patched.hbc");
 
     console.log("Patching", bundle);
 
-    const module = parseHermesModule((await readFile(bundle)).buffer);
+    const module = parseHermesModule(buffer);
     const patched = writeHermesModule(patchModule(module));
 
     await writeFile("./discord/patched.hbc", patched);
