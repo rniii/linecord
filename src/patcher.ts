@@ -2,21 +2,27 @@ import { Disassembler, encodeInstructions, HermesModule, Instruction, parseHerme
 import { ModulePatcher } from "decompiler/mutable";
 import { Opcode } from "decompiler/opcodes";
 import type { ModuleFunction } from "decompiler/types";
-import { writeFile } from "fs/promises";
+import { readFile, writeFile } from "fs/promises";
 
 import { PatchContext, type PatchDef } from "#api/patches.ts";
 
 import { formatSizeUnit, mapValues } from "../utils/index.ts";
-import { readArrayBuffer } from "../utils/node.ts";
 import experiments from "./plugins/experiments/index.ts";
 
 const plugins = [experiments];
 
-const buffer = await readArrayBuffer("discord/bundle.hbc");
-const module = parseHermesModule(buffer);
-const patched = writeHermesModule(patchModule(module));
+for (const bundle of ["discord/android.hbc", "discord/apple.hbc"]) {
+    const output = bundle.replace(/\.hbc$/, ".patched.hbc");
 
-await writeFile("./discord/patched.hbc", patched);
+    console.log("Patching", bundle);
+
+    const module = parseHermesModule((await readFile(bundle)).buffer);
+    const patched = writeHermesModule(patchModule(module));
+
+    await writeFile("./discord/patched.hbc", patched);
+
+    console.log(bundle, "=>", output);
+}
 
 console.log(mapValues(process.memoryUsage(), formatSizeUnit));
 
@@ -25,8 +31,10 @@ function patchModule(module: HermesModule) {
     const patcher = new ModulePatcher(module);
     runPatches(plugins.flatMap(plugin => plugin.patches), module.functions);
 
-    for (const dirty of patcher.dirtyFunctions.values()) {
-        console.log(dis.diffMutable(dirty));
+    if (process.argv.includes("--dump")) {
+        for (const dirty of patcher.dirtyFunctions.values()) {
+            console.log(dis.diffMutable(dirty));
+        }
     }
 
     patcher.modifyFunctions();

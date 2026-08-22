@@ -1,13 +1,12 @@
 import { parseHermesModule } from "decompiler";
-import { appendFile, open } from "fs/promises";
+import { appendFile, open, readFile } from "fs/promises";
 
 import { disassemble } from "../src/disasm.ts";
 import { instrument } from "../test/profiling.ts";
-import { readArrayBuffer } from "../utils/node.ts";
 
 const disasm = instrument("disassemble", disassemble);
 
-const buffer = await readArrayBuffer(process.argv[2] ?? "discord/bundle.hbc");
+const buffer = (await readFile(process.argv[2] ?? "discord/bundle.hbc")).buffer;
 const module = parseHermesModule(buffer);
 
 const output = await open(process.argv[3] ?? "bytecode.ansi", "w");

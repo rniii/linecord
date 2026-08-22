@@ -1,29 +1,18 @@
-# Hermicide™
+# linecord
 
-Work in progress bytecode-based Discord patcher
+WIP bytecode-based client mod for Discord mobile.
+
+## Usage:
+
+You need to have either .apk files (Android) or a .ipa (iOS). Using
+`scripts/extract.ts` you can grab either from your mobile device after setting
+up the respective tool:
 
 ```
-$ pnpm i
-$ pnpm extract:android    # Grab Discord's APK using `adb`. USB cable recommended.
-$ pnpm extract:ios        # Grab Discord's IPA using `ipatool`.
-$ pnpm disasm             # Dump bytecode
-$ less -R bytecode.ansi   # Read using a pager
+$ node scripts/extract.ts --platform android    # Using ADB
+$ node scripts/extract.ts --platform ios        # Or using ipatool
 ```
 
-[join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join]
-[join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join]
-[join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join]
-[join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join]
-[join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join]
-[join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join]
-[join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join]
-[join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join]
-[join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join]
-[join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join]
-[join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join]
-[join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join]
-[join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join]
-[join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join]
-[join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join] [join]
+Or, place it the main split at `discord/base.apk` or the iOS ipa at `discord/apple.ipa` and run the same with `--no-copy`. Additionally if `process.platform` is `"android"` (yay termux), it will pull the apk from the device itself.
 
-[join]: https://discord.gg/RzEN4Nedg5
+Now you can run `npm start`! And get a `discord/android.patched.hbc` and.. Sorry you have to figure out the rest for now.

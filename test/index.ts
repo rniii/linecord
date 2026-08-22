@@ -1,12 +1,12 @@
 import { parseHermesModule, writeHermesModule } from "decompiler";
 import { formatSizeUnit, mapValues } from "../utils/index.ts";
 import { measureProfile } from "./profiling.ts";
-import { readArrayBuffer } from "../utils/node.ts";
+import { readFile } from "node:fs/promises";
 
 await using profile = await measureProfile("./test/profile.cpuprofile");
 void profile;
 
-const buffer = await readArrayBuffer("./discord/bundle.hbc");
+const buffer = (await readFile("./discord/bundle.hbc")).buffer;
 const origHash = new Uint8Array(buffer, buffer.byteLength - 20);
 
 console.time("parse");
