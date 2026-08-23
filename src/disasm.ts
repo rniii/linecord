@@ -85,7 +85,7 @@ function disassembleInstruction(module: HermesModule, func: ModuleFunction, inst
     switch (instr.opcode) {
         case Opcode.NewArrayWithBuffer:
         case Opcode.NewArrayWithBufferLong: {
-            const values = parseArrayValues(module, instr.getOperand(2), instr.getOperand(3));
+            const values = parseArrayValues(module, instr.getOperand(3), instr.getOperand(2));
 
             notes.push(`[${values.map(v => JSON.stringify(v)).join(", ")}]`);
             break;
@@ -93,9 +93,8 @@ function disassembleInstruction(module: HermesModule, func: ModuleFunction, inst
         case Opcode.NewObjectWithBuffer:
         case Opcode.NewObjectWithBufferLong:
         case Opcode.NewObjectWithBufferAndParent: {
-            const [, shapeIdx, valIdx] = instr.operands().drop(
-                instr.opcode === Opcode.NewObjectWithBufferAndParent ? 2 : 1,
-            );
+            const [shapeIdx, valIdx] = instr.operands()
+                .drop(instr.opcode === Opcode.NewObjectWithBufferAndParent ? 2 : 1);
 
             const keys = parseObjectKeys(module, shapeIdx);
             const values = parseObjectValues(module, shapeIdx, valIdx);
