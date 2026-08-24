@@ -1,5 +1,7 @@
 # linecord
 
+![](logo.jpg)
+
 WIP bytecode-based client mod for Discord mobile.
 
 ## Usage:
