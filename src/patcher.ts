@@ -10,10 +10,30 @@ import { PatchContext, type PatchDef } from "#api/patches.ts";
 import type { PluginDef } from "#api/plugin.ts";
 
 import { formatSizeUnit, mapValues } from "../utils/index.ts";
-import experiments from "./plugins/experiments/index.ts";
-import silentTyping from "./plugins/silentTyping/index.ts";
 
-const plugins = [experiments, silentTyping];
+const plugins = [] as PluginDef[];
+const pluginsDir = join(import.meta.dirname, "plugins");
+
+for (const entry of await readdir(pluginsDir, { withFileTypes: true })) {
+    const path = join(pluginsDir, entry.name);
+
+    let entrypoint: string | undefined;
+
+    if (entry.isFile() && /\.[cm]?[jt]sx?$/.test(entry.name)) {
+        entrypoint = path;
+    } else if (entry.isDirectory()) {
+        for (const subPath of await readdir(path)) {
+            if (/^index\.[cm]?[jt]sx?$/.test(subPath)) {
+                entrypoint = join(path, subPath);
+                break;
+            }
+        }
+    }
+
+    if (!entrypoint) continue;
+
+    plugins.push((await import(entrypoint)).default);
+}
 
 for (const bundle of ["discord/android.hbc", "discord/apple.hbc"]) {
     let buffer;
