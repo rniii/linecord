@@ -8,8 +8,9 @@ import { PatchContext, type PatchDef } from "#api/patches.ts";
 
 import { formatSizeUnit, mapValues } from "../utils/index.ts";
 import experiments from "./plugins/experiments/index.ts";
+import silentTyping from "./plugins/silentTyping/index.ts";
 
-const plugins = [experiments];
+const plugins = [experiments, silentTyping];
 
 for (const bundle of ["discord/android.hbc", "discord/apple.hbc"]) {
     let buffer;
