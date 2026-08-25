@@ -24,4 +24,9 @@ export const Devs = {
         github: "rniii",
         githubId: 142252300,
     },
+    "paige": {
+        name: "paige",
+        github: "ssalggnikool",
+        githubId: 235818692,
+    },
 } satisfies Record<string, Developer>;
