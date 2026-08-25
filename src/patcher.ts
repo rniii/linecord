@@ -1,15 +1,39 @@
+import { readdir, readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+
 import { Disassembler, encodeInstructions, HermesModule, Instruction, parseHermesModule, parseObjectKeys, writeHermesModule } from "decompiler";
 import { ModulePatcher } from "decompiler/mutable";
 import { Opcode } from "decompiler/opcodes";
 import type { ModuleFunction } from "decompiler/types";
-import { readFile, writeFile } from "fs/promises";
 
 import { PatchContext, type PatchDef } from "#api/patches.ts";
+import type { PluginDef } from "#api/plugin.ts";
 
 import { formatSizeUnit, mapValues } from "../utils/index.ts";
-import experiments from "./plugins/experiments/index.ts";
 
-const plugins = [experiments];
+const plugins = [] as PluginDef[];
+const pluginsDir = join(import.meta.dirname, "plugins");
+
+for (const entry of await readdir(pluginsDir, { withFileTypes: true })) {
+    const path = join(pluginsDir, entry.name);
+
+    let entrypoint: string | undefined;
+
+    if (entry.isFile() && /\.[cm]?[jt]sx?$/.test(entry.name)) {
+        entrypoint = path;
+    } else if (entry.isDirectory()) {
+        for (const subPath of await readdir(path)) {
+            if (/^index\.[cm]?[jt]sx?$/.test(subPath)) {
+                entrypoint = join(path, subPath);
+                break;
+            }
+        }
+    }
+
+    if (!entrypoint) continue;
+
+    plugins.push((await import(entrypoint)).default);
+}
 
 for (const bundle of ["discord/android.hbc", "discord/apple.hbc"]) {
     let buffer;
@@ -44,6 +68,19 @@ function patchModule(module: HermesModule) {
             console.log(dis.diffMutable(dirty));
         }
     }
+
+    // const str = patcher.addString("print('meow')");
+
+    // patcher.getMutable(module.globalCodeIndex).insert(0, encodeInstructions([
+    //     [Opcode.GetGlobalObject, 0],
+    //     [Opcode.TryGetById,
+    //         /* dst*/ 1,
+    //         /* cache */ 0,
+    //         /* object */ 0,
+    //         /* key */ assert(patcher.findString("eval")?.index, "fish")],
+    //     [Opcode.LoadConstString, /* dst */ 2, str],
+    //     [Opcode.Call2, /* dst */ 0, /* func */ 1, /* thisArg */ 0, /* arg1 */ 2],
+    // ]));
 
     patcher.modifyFunctions();
 
