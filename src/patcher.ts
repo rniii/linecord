@@ -1,10 +1,13 @@
+import { readdir, readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+
 import { Disassembler, encodeInstructions, HermesModule, Instruction, parseHermesModule, parseObjectKeys, writeHermesModule } from "decompiler";
 import { ModulePatcher } from "decompiler/mutable";
 import { Opcode } from "decompiler/opcodes";
 import type { ModuleFunction } from "decompiler/types";
-import { readFile, writeFile } from "fs/promises";
 
 import { PatchContext, type PatchDef } from "#api/patches.ts";
+import type { PluginDef } from "#api/plugin.ts";
 
 import { formatSizeUnit, mapValues } from "../utils/index.ts";
 import experiments from "./plugins/experiments/index.ts";
@@ -45,6 +48,19 @@ function patchModule(module: HermesModule) {
             console.log(dis.diffMutable(dirty));
         }
     }
+
+    // const str = patcher.addString("print('meow')");
+
+    // patcher.getMutable(module.globalCodeIndex).insert(0, encodeInstructions([
+    //     [Opcode.GetGlobalObject, 0],
+    //     [Opcode.TryGetById,
+    //         /* dst*/ 1,
+    //         /* cache */ 0,
+    //         /* object */ 0,
+    //         /* key */ assert(patcher.findString("eval")?.index, "fish")],
+    //     [Opcode.LoadConstString, /* dst */ 2, str],
+    //     [Opcode.Call2, /* dst */ 0, /* func */ 1, /* thisArg */ 0, /* arg1 */ 2],
+    // ]));
 
     patcher.modifyFunctions();
 
