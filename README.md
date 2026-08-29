@@ -10,7 +10,7 @@ You need to have either .apk files (Android) or a .ipa (iOS). Using
 `scripts/extract.ts` you can grab either from your mobile device after setting
 up the respective tool:
 
-```
+```sh
 $ node scripts/extract.ts --platform android    # Using ADB
 $ node scripts/extract.ts --platform ios        # Or using ipatool
 ```
