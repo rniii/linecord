@@ -8,3 +8,4 @@ patched.ansi
 *.cpuprofile
 
 dist/
+/result

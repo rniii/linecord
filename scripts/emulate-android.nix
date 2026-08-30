@@ -7,10 +7,15 @@ let
 in (
     with nixpkgs.legacyPackages.${builtins.currentSystem};
 
-    androidenv.emulateApp {
+    (androidenv.emulateApp {
         name = "discord";
-        app = lib.sourceByRegex ../discord [ "^(base|split_.*).apk$" ];
+        app = lib.sourceByRegex ../discord [
+            "^base.apk$"
+            "^split_config.(en|x86_64|xxhdpi).apk$"
+        ];
         package = "com.discord";
+        activity = "com.discord.main.MainActivity";
+        androidUserHome = "./discord";
 
         configOptions = {
             "hw.gpu.enabled" = "yes";
@@ -18,5 +23,18 @@ in (
         };
 
         inherit platformVersion systemImageType abiVersion;
-    }
+    }).overrideAttrs (finalAttrs: { buildCommand = finalAttrs.buildCommand + ''
+        ${ed}/bin/ed $out/bin/run-test-emulator << "EOF"
+        /install "$appPath"/s/^/    /
+        d
+        /appPath="\//x
+        /appPath="$(/x
+        s/install "$appPath"/install-multiple "''${appPath[@]}"/
+        -1s/appPath="\$(echo \(.*\))"/appPath=(\1)/
+        $a
+        wait
+        .
+        w
+        EOF
+    ''; })
 )
