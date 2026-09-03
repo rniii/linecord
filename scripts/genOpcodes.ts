@@ -1,7 +1,5 @@
 import { writeFile } from "fs/promises";
 
-import { entries } from "../utils/index.ts";
-
 // Current React Native version in Discord is v0.86.0. Hermes is referenced here:
 // https://github.com/react/react-native/blob/v0.86.0/packages/react-native/package.json#L179
 const HERMES_URL = "https://github.com/facebook/hermes/raw/hermes-v250829098.0.14";
@@ -53,13 +51,17 @@ export type ArgType = typeof ArgType[keyof typeof ArgType];
  * Numeric Hermes instruction opcodes.
  */
 export const Opcode = {
-${entries(opcodeTypes).map(([op], index) => getJsdoc(op) + `    ${op}: ${index},`).join("\n")}
+${Object.entries(opcodeTypes).map(([op], index) => getJsdoc(op) + `\
+    ${op}: ${index},\
+`).join("\n")}
 } as const;
 
 export type Opcode = typeof Opcode[keyof typeof Opcode];
 
 export const opcodeNames = {
-${entries(opcodeTypes).map(([op], index) => `    ${index}: "${op}",`).join("\n")}
+${Object.entries(opcodeTypes).map(([op], index) => `\
+    ${index}: "${op}",\
+`).join("\n")}
 } as const;
 
 export type OpcodeMap<T> = Readonly<Partial<Record<Opcode, T>>>;
@@ -70,14 +72,18 @@ export type OperandSet = OpcodeMap<readonly number[]>;
  * Argument type corresponding to {@link Opcode}.
  */
 export const opcodeTypes = {
-${entries(opcodeTypes).map(([op, args]) => `    [Opcode.${op}]: [${args.map(a => `ArgType.${a}`).join(", ")}],`).join("\n")}
+${Object.entries(opcodeTypes).map(([op, args]) => `\
+    [Opcode.${op}]: [${args.map(a => `ArgType.${a}`).join(", ")}],\
+`).join("\n")}
 } as const;
 
 /**
  * Opcodes which have operands referring to the bigint table.
  */
 const BIGINT_OPERANDS = {
-${entries(bigIntOps).map(([op, args]) => `    [Opcode.${op}]: [${args.join(", ")}],`).join("\n")}
+${Object.entries(bigIntOps).map(([op, args]) => `\
+    [Opcode.${op}]: [${args.join(", ")}],\
+`).join("\n")}
 } as const;
 export type BigIntOperands = typeof BIGINT_OPERANDS;
 export const bigintOperands: OperandSet = BIGINT_OPERANDS;
@@ -86,7 +92,9 @@ export const bigintOperands: OperandSet = BIGINT_OPERANDS;
  * Opcodes which have operands referring to the function table.
  */
 const FUNCTION_OPERANDS = {
-${entries(functionOps).map(([op, args]) => `    [Opcode.${op}]: [${args.join(", ")}],`).join("\n")}
+${Object.entries(functionOps).map(([op, args]) => `\
+    [Opcode.${op}]: [${args.join(", ")}],\
+`).join("\n")}
 } as const;
 export type FunctionOperands = typeof FUNCTION_OPERANDS;
 export const functionOperands: OperandSet = FUNCTION_OPERANDS;
@@ -95,33 +103,43 @@ export const functionOperands: OperandSet = FUNCTION_OPERANDS;
  * Opcodes which have operands referring to the string table.
  */
 const STRING_OPERANDS = {
-${entries(stringOps).map(([op, args]) => `    [Opcode.${op}]: [${args.join(", ")}],`).join("\n")}
+${Object.entries(stringOps).map(([op, args]) => `\
+    [Opcode.${op}]: [${args.join(", ")}],\
+`).join("\n")}
 } as const;
 export type StringOperands = typeof STRING_OPERANDS;
 export const stringOperands: OperandSet = STRING_OPERANDS;
 
 export const Builtin = {
-${builtins.map((x, index) => `    "${x}": ${index},`).join("\n")}
+${builtins.map((x, index) => `\
+    "${x}": ${index},\
+`).join("\n")}
 } as const;
 
 export type Builtin = typeof Builtin[keyof typeof Builtin];
 
 export const builtinNames = {
-${builtins.map((x, index) => `    ${index}: "${x}",`).join("\n")}
+${builtins.map((x, index) => `\
+    ${index}: "${x}",\
+`).join("\n")}
 };
 
 /**
  * Longer version of opcodes, allowing higher values in their arguments.
  */
 export const longOpcodes: OpcodeMap<Opcode> = {
-${entries(longOpcodes).map(([short, long]) => `    [Opcode.${short}]: Opcode.${long},`).join("\n")}
+${Object.entries(longOpcodes).map(([short, long]) => `\
+    [Opcode.${short}]: Opcode.${long},\
+`).join("\n")}
 };
 
 /**
  * Normalised opcodes without a Short or Long suffix.
  */
 export const canonicalOpcodes: Readonly<Record<Opcode, Opcode>> = {
-${entries(canonicalOpcodes).map(([opcode, canon]) => `    [Opcode.${opcode}]: Opcode.${canon},`).join("\n")}
+${Object.entries(canonicalOpcodes).map(([opcode, canon]) => `\
+    [Opcode.${opcode}]: Opcode.${canon},\
+`).join("\n")}
 };
 `;
 

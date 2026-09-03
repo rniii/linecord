@@ -1,5 +1,5 @@
 import { parseHermesModule, writeHermesModule } from "decompiler";
-import { formatSizeUnit, mapValues } from "../utils/index.ts";
+import { formatSizeUnit, mapValues } from "../src/utils.ts";
 import { measureProfile } from "./profiling.ts";
 import { readFile } from "node:fs/promises";
 

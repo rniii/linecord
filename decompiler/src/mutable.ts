@@ -1,9 +1,9 @@
-import { bisect } from "../../utils/index.ts";
 import { type DebugOffsets, type ExceptionHandlerInfo, type StringTableEntry, stringTableEntry } from "./bitfields.ts";
 import { ModuleBytecode, type ModuleFunction, type PartialFunctionHeader } from "./function.ts";
 import { Instruction } from "./instruction.ts";
 import { HermesModule } from "./module.ts";
 import { Rope } from "./rope.ts";
+import { bisect } from "./utils.ts";
 
 const Utf8E = new TextEncoder();
 

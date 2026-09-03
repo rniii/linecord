@@ -1,5 +1,5 @@
-import { padSize } from "../../utils/index.ts";
 import { type DebugOffsets, debugOffsets, type ExceptionHandlerInfo, exceptionHandlerInfo, type FunctionHeader, getLargeOffset, largeFunctionHeader } from "./bitfields.ts";
+import { padSize } from "./utils.ts";
 
 export class ModuleBytecode {
     opcodes: Uint8Array;

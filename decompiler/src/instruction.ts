@@ -1,4 +1,3 @@
-import { mapValues } from "../../utils/index.ts";
 import {
     ArgType,
     type BigIntOperands,
@@ -11,6 +10,7 @@ import {
     type StringOperands,
     stringOperands,
 } from "./opcodes.ts";
+import { mapValues } from "./utils.ts";
 
 const argWidths: Record<ArgType, number> = {
     [ArgType.UInt8]: 1,

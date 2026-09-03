@@ -1,4 +1,4 @@
-import { transpose } from "../utils/index.ts";
+import { transpose } from "./utils.ts";
 
 export const ansiColor = (c?: number) => process.stdout.isTTY ? `\x1b[${c ?? ""}m` : "";
 export const rgbColor = (r: number, g: number, b: number) => process.stdout.isTTY ? `\x1b[38;2;${r};${g};${b}m` : "";

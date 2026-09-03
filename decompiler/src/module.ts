@@ -1,4 +1,3 @@
-import { bisect, fromEntries, mapValues, padSize, toBigInt } from "../../utils/index.ts";
 import {
     functionSourceEntry,
     getLargeOffset,
@@ -14,6 +13,7 @@ import {
     stringTableEntry,
 } from "./bitfields.ts";
 import { ModuleBytecode, ModuleFunction } from "./function.ts";
+import { bisect, fromEntries, mapValues, padSize, toBigInt } from "./utils.ts";
 
 // https://github.com/facebook/hermes/blob/hermes-v250829098.0.14/include/hermes/BCGen/HBC/BytecodeVersion.h#L23
 export const HERMES_VERSION = 98;

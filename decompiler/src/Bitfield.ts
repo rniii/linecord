@@ -1,4 +1,4 @@
-import { entries, padSize } from "../../utils/index.ts";
+import { entries, padSize } from "./utils.ts";
 
 export class Bitfield<K extends string> {
     fields: Record<K, number>;

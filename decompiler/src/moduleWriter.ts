@@ -1,4 +1,3 @@
-import { entries, padSize } from "../../utils/index.ts";
 import {
     debugOffsets,
     exceptionHandlerInfo,
@@ -13,6 +12,7 @@ import {
 } from "./bitfields.ts";
 import type { ModuleBytecode } from "./function.ts";
 import { type Header, HERMES_SIGNATURE, HERMES_VERSION, HermesModule, segmentModule } from "./module.ts";
+import { entries, padSize } from "./utils.ts";
 
 export function writeHermesModule(module: HermesModule) {
     const header: Header = {

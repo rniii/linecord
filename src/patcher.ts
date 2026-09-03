@@ -9,7 +9,7 @@ import type { ModuleFunction } from "decompiler/types";
 import { PatchContext, type PatchDef } from "#api/patches.ts";
 import type { PluginDef } from "#api/plugin.ts";
 
-import { formatSizeUnit, mapValues } from "../utils/index.ts";
+import { formatSizeUnit, mapValues } from "./utils.ts";
 
 const plugins = [] as PluginDef[];
 const pluginsDir = join(import.meta.dirname, "plugins");
