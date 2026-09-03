@@ -1,6 +1,6 @@
 import type { PatchDef } from "./patches.ts";
 
-type Author = keyof Developer;
+type Author = keyof typeof Devs;
 
 export interface PluginDef {
     name: string;

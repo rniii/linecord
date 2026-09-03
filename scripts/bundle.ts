@@ -60,10 +60,10 @@ class StringPool extends Chunk {
         view.byteOffset = this.offset + 8;
 
         const strCount = view.getUint32(0, true);
-        const styleCount = view.getUint32(4, true);
+        // const styleCount = view.getUint32(4, true);
         const strFlags = view.getUint32(8, true);
         const strOffset = view.getUint32(12, true);
-        const styleStart = view.getUint32(16, true);
+        // const styleStart = view.getUint32(16, true);
 
         this.flags = strFlags;
 
@@ -77,7 +77,7 @@ class StringPool extends Chunk {
             if (this.flags & FLAG_UTF8) {
                 const len = strlen(view.buffer.slice(offset));
 
-                this.strings.push(Utf8D.decode(view.buffer.slice(offset, len)))
+                this.strings.push(Utf8D.decode(view.buffer.slice(offset, len)));
             } else {
                 const len = wcslen(view.buffer.slice(offset));
 
@@ -108,7 +108,7 @@ const types = {
     0x0003: Xml,
 };
 
-const FLAG_SORTED = 1 << 0;
+// const FLAG_SORTED = 1 << 0;
 const FLAG_UTF8 = 1 << 8;
 
 const Utf8D = new TextDecoder("utf-8");
@@ -144,7 +144,7 @@ function seekable<T extends { byteOffset: number }>(impl: (offset: number) => T)
             if (typeof result === "function") {
                 return function (...args: any) {
                     return Reflect.apply(result, buffer, args);
-                }
+                };
             }
 
             return result;

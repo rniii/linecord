@@ -13,6 +13,7 @@ export default defineConfig({
         "unused-imports": unusedImports,
         "simple-import-sort": importSort,
     },
+
     extends: [
         js.configs.recommended,
         ts.configs.recommended,
@@ -27,9 +28,10 @@ export default defineConfig({
     rules: {
         "@stylistic/arrow-parens": ["error", "as-needed"],
         "@stylistic/generator-star-spacing": ["error", { before: true, after: false }],
-        "@stylistic/operator-linebreak": ["error", "before", { overrides: { "=": "after" } }],
-        "@stylistic/spaced-comment": ["error", "always", { markers: ["!", "#region", "#endregion"] }],
         "@stylistic/no-mixed-operators": "off",
+        "@stylistic/operator-linebreak": ["error", "before", { overrides: { "=": "after" } }],
+        "@stylistic/quote-props": "off",
+        "@stylistic/spaced-comment": ["error", "always", { markers: ["!", "#region", "#endregion"] }],
 
         "simple-import-sort/imports": "error",
         "simple-import-sort/exports": "error",
@@ -42,4 +44,11 @@ export default defineConfig({
         "no-var": "off",
         "prefer-const": ["error", { destructuring: "all" }],
     },
+}, {
+    // > When non-JS files are specified in the files property, ESLint still lints files
+    // that match the default patterns. To lint only the files specified in the files
+    // property, you must ignore the default file patterns:
+    //
+    // DIEEEEEEEEEEEEEEEEEe
+    ignores: ["**/*.js", "**/*.cjs", "**/*.mjs"],
 });
