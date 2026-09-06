@@ -7,7 +7,7 @@ unzip base.apk classes.dex
 line=$(strings -t d classes.dex | grep -E '^[[:digit:]]+ discord\.com$')
 node -e 'd = fs.readFileSync("classes.dex"),
     [offset]="'"$line"'".split(" "),
-    d.set(offset, new TextEncoder().encode("url.invalid")),
+    d.set(+offset, new TextEncoder().encode("url.invalid")),
     d.set(12, crypto.createHash("sha1").update(d.subarray(32)).digest()),
     a = 1, b = 0;
     for (i = 12; i < d.byteLength; i++) a = (a + d[i]) % 65521, b = (b + a) % 65521;
@@ -25,6 +25,7 @@ rm classes.dex
 mkdir assets
 cp ../patched.hbc assets/index.android.bundle
 zip -u base.apk -0 assets/index.android.bundle
+zip -d base.apk assets/index.android.bundle.patch
 rm assets/index.android.bundle
 rmdir assets
 
