@@ -56,7 +56,7 @@ export class ModulePatcher {
 
     addString(str: string) {
         // eslint-disable-next-line no-control-regex
-        if (!/^[\x00-\x7f]*$/.test(str)) throw "todo"; // no utf-16 encoder
+        if (/[\x00-\x7f]/.test(str)) throw "todo"; // no utf-16 encoder
 
         const encoded = Utf8E.encode(str);
 

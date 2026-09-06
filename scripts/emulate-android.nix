@@ -20,14 +20,11 @@
     adb="$(grep -oEm1 "/.*/adb" $out/bin/run-linecord-emulator)"
 
     cat >> $out/bin/run-linecord-emulator << EOF
-    if [ -f discord/base.apk ]; then
-        $adb -s emulator-\$port install-multiple discord/base.apk \
-            discord/split_config.{en,x86_64,xxhdpi}.apk
-    fi
-
     if [ -f discord/patched/base.apk ]; then
+        $adb -s emulator-\$port uninstall com.discord
+
         $adb -s emulator-\$port install-multiple discord/patched/base.apk \
-            discord/split_config.{en,x86_64,xxhdpi}.apk
+            discord/patched/split_config.{en,x86_64,xxhdpi}.apk
     fi
 
     wait
