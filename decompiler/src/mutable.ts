@@ -68,6 +68,8 @@ export class ModulePatcher {
 
         this.newStrStorage = this.newStrStorage.concat(Rope.from(encoded));
         this.newStrEntries.push(entry);
+
+        return this.original.strings.length + this.newStrEntries.length;
     }
 
     getMutable(id: number): MutableFunction {
