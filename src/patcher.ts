@@ -1,5 +1,6 @@
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { parseArgs } from "node:util";
 
 import { Disassembler, encodeInstructions, HermesModule, Instruction, parseHermesModule, parseObjectKeys, writeHermesModule } from "decompiler";
 import { ModulePatcher } from "decompiler/mutable";
@@ -9,7 +10,11 @@ import type { ModuleFunction } from "decompiler/types";
 import { PatchContext, type PatchDef } from "#api/patches.ts";
 import type { PluginDef } from "#api/plugin.ts";
 
-import { formatSizeUnit, mapValues } from "./utils.ts";
+import { assert, f, formatSizeUnit, mapValues } from "./utils.ts";
+
+const args = parseArgs({ options: {
+    disable: { type: "string", multiple: true },
+} });
 
 const plugins = [] as PluginDef[];
 const pluginsDir = join(import.meta.dirname, "plugins");
@@ -17,22 +22,32 @@ const pluginsDir = join(import.meta.dirname, "plugins");
 for (const entry of await readdir(pluginsDir, { withFileTypes: true })) {
     const path = join(pluginsDir, entry.name);
 
+    let name: string | undefined;
     let entrypoint: string | undefined;
 
     if (entry.isFile() && /\.[cm]?[jt]sx?$/.test(entry.name)) {
+        name = entry.name.replace(/\.\w*$/, "");
         entrypoint = path;
     } else if (entry.isDirectory()) {
         for (const subPath of await readdir(path)) {
             if (/^index\.[cm]?[jt]sx?$/.test(subPath)) {
+                name = entry.name;
                 entrypoint = join(path, subPath);
                 break;
             }
         }
     }
 
-    if (!entrypoint) continue;
+    if (!name || !entrypoint) continue;
 
-    plugins.push((await import(entrypoint)).default);
+    try {
+        if (args.values.disable?.includes(name)) continue;
+
+        console.log("Loading", name, "from", entrypoint);
+        plugins.push((await import(entrypoint)).default);
+    } catch (err) {
+        console.error("Failed to load plugin", err);
+    }
 }
 
 for (const bundle of ["discord/android.hbc", "discord/apple.hbc"]) {
@@ -68,19 +83,6 @@ function patchModule(module: HermesModule) {
             console.log(dis.diffMutable(dirty));
         }
     }
-
-    // const str = patcher.addString("print('meow')");
-
-    // patcher.getMutable(module.globalCodeIndex).insert(0, encodeInstructions([
-    //     [Opcode.GetGlobalObject, 0],
-    //     [Opcode.TryGetById,
-    //         /* dst*/ 1,
-    //         /* cache */ 0,
-    //         /* object */ 0,
-    //         /* key */ assert(patcher.findString("eval")?.index, "fish")],
-    //     [Opcode.LoadConstString, /* dst */ 2, str],
-    //     [Opcode.Call2, /* dst */ 0, /* func */ 1, /* thisArg */ 0, /* arg1 */ 2],
-    // ]));
 
     patcher.modifyFunctions();
 
@@ -220,22 +222,4 @@ function patchModule(module: HermesModule) {
 
         return { identifierId, opcodes, stringIds, closureIds };
     }
-}
-
-function assert<T>(value: T | undefined, err: string): T {
-    if (!value) throw Error(err);
-    return value;
-}
-
-function f(args: TemplateStringsArray, ...values: any[]) {
-    return String.raw({ raw: args }, ...values.map(v => {
-        if (typeof v == "number") {
-            return v.toLocaleString("fr", { maximumSignificantDigits: 3 }).replace(",", ".");
-        }
-        if (typeof v == "string") {
-            return JSON.stringify(v);
-        }
-
-        return v;
-    }));
 }

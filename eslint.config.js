@@ -29,6 +29,10 @@ export default defineConfig({
         "@stylistic/arrow-parens": ["error", "as-needed"],
         "@stylistic/generator-star-spacing": ["error", { before: true, after: false }],
         "@stylistic/no-mixed-operators": "off",
+        "@stylistic/no-multi-spaces": ["error", { exceptions: {
+            Property: true,
+            ArrayExpression: true,
+        } }],
         "@stylistic/operator-linebreak": ["error", "before", { overrides: { "=": "after" } }],
         "@stylistic/quote-props": "off",
         "@stylistic/spaced-comment": ["error", "always", { markers: ["!", "#region", "#endregion"] }],

@@ -48,3 +48,21 @@ export function formatSizeUnit(bytes: number) {
 
     return bytes + units.shift()!;
 }
+
+export function assert<T>(value: T | undefined, err: string): T {
+    if (!value) throw Error(err);
+    return value;
+}
+
+export function f(args: TemplateStringsArray, ...values: any[]) {
+    return String.raw({ raw: args }, ...values.map(v => {
+        if (typeof v == "number") {
+            return v.toLocaleString("fr", { maximumSignificantDigits: 3 }).replace(",", ".");
+        }
+        if (typeof v == "string") {
+            return JSON.stringify(v);
+        }
+
+        return v;
+    }));
+}
